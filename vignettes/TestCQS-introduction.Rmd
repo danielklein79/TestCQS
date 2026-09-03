@@ -1,0 +1,399 @@
+---
+title: "Introduction to the TestCQS package"
+author: "Mateusz John, Daniel Klein and Yuli Liang"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 2
+bibliography: bibliography.bib
+link-citations: true
+csl: statistical-papers.csl
+vignette: >
+  %\VignetteIndexEntry{Introduction to the TestCQS package}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.align = "center",
+  warning = FALSE,
+  message = FALSE
+)
+
+#library(TestCQS)
+library(MASS)
+```
+
+# Introduction
+
+The **TestCQS** package provides statistical tools for testing whether a scale (or covariance) matrix belongs to a selected **commutative quadratic subspace (CQS)**. The package implements likelihood ratio and Rao score tests for a test for covariance structures belonging to CQS. The proposed methodology applies whenever inference is based on a scale matrix belonging to a commutative quadratic subspace, encompassing ordinary (single-level), doubly multivariate, and more general multilevel multivariate models. The CQS framework provides a unified mathematical description of numerous covariance structures encountered in applications, including sphericity, diagonality, compound symmetry, circular Toeplitz, and their block generalizations. In addition to the testing procedures, the package provides a flexible framework for constructing orthogonal basis matrices corresponding to covariance structures within the CQS class, including user-defined structures.
+
+## Why test covariance structures?
+
+In multivariate statistical analysis, the covariance (or scale) matrix determines the dependence structure among variables. Assuming an appropriate covariance structure can substantially reduce the number of unknown parameters, improve the efficiency of estimation procedures, and simplify the interpretation of the model. However, an incorrect structural assumption may lead to misleading statistical inference.
+
+Many covariance structures that appear in practice, such as sphericity, diagonality, compound symmetry, circular Toeplitz, and various block extensions, belong to the class of CQS. The CQS framework provides a unified mathematical representation of these models through their common eigenspaces.
+
+The **TestCQS** package provides hypothesis tests for assessing whether the unknown covariance (or scale) matrix is compatible with a selected CQS structure. The package implements both likelihood ratio and Rao score tests, allowing users to verify structural assumptions before fitting more restrictive models or applying statistical methods that rely on these assumptions.
+
+## What problems does TestCQS solve?
+
+The package addresses several practical problems encountered when working with structured covariance matrices.
+
+- **Testing predefined covariance structures.** It allows users to test whether the covariance (or scale) matrix belongs to one of the supported or user-defined CQS structures.
+
+- **User-defined structures.** In addition to the built-in structures, users may supply their own orthogonal basis matrix together with the corresponding eigenvalue multiplicities, making it possible to test arbitrary CQS models.
+
+- **Exact and asymptotic inference.** Depending on the test, the package provides exact distributions, asymptotic chi-squared approximations, and Monte Carlo approximations when appropriate.
+
+- **Automatic construction of basis matrices.** Functions whose names begin with `basis_` generate orthogonal basis matrices and the associated eigenvalue multiplicities required for specifying CQS models.
+
+
+# The statistical model
+
+The methodology implemented in **TestCQS** is based on the matrix-variate location--scale model
+
+\[
+\mathbf{X} = \mathbf{1}_n \boldsymbol{\mu}^\top + \mathbf{E},
+\]
+
+where $\mathbf{X}\in\mathbb{R}^{n\times q}$ is the observation matrix, $\boldsymbol{\mu}\in\mathbb{R}^q$ is the unknown location vector, and $\mathbf{E}$ is a random error matrix.
+
+The proposed tests are applicable whenever $\mathbf{E}$ follows a
+**vector-spherical matrix-variate distribution**,
+
+\[
+\mathbf{E}\sim \mathcal{EL}_{n,q}^{\,h}
+\left(
+\mathbf{0},
+\mathbf{I}_n,
+\boldsymbol{\Omega}
+\right),
+\]
+
+where $\boldsymbol{\Omega}$ denotes the unknown positive-definite scale matrix and $h$ is the density generator. This family includes the multivariate normal distribution, Student's $t$ distribution, Kotz-type distributions, Pearson type VII distributions, and many other elliptically contoured models as special cases.
+
+The objective is to test whether the unknown scale matrix
+$\boldsymbol{\Omega}$ belongs to a prescribed (CQS). Such structures are represented through their spectral decomposition
+
+\[
+\boldsymbol{\Omega} =
+\mathbf{H} \boldsymbol{\Lambda} \mathbf{H}^{\top},
+\]
+
+where $\mathbf{H}$ is a given orthogonal basis matrix and
+$\boldsymbol{\Lambda}$ is a diagonal matrix whose eigenvalues have prescribed multiplicities.
+
+The package implements likelihood ratio and Rao score tests for testing the hypothesis 
+
+\[
+H_0: \  \boldsymbol\Omega=\boldsymbol\Omega_0 \in \mathcal V \qquad \mbox{vs} \qquad 
+H_1: \  \boldsymbol\Omega \ \mbox{is unstructured, positive definite},
+\]
+
+where $\mathcal V$ denotes a prescribed commutative quadratic subspace. For this purpose, the package implements both
+
+* the likelihood ratio test (LRT), and
+* the Rao score test (RST),
+
+together with asymptotic p-values. For the likelihood ratio statistic, a numerical approximation of the exact null distribution is also available.
+
+Moreover, the package provides also a collection of functions for constructing the orthogonal basis matrix $\mathbf{H}$ for many commonly used CQS structures as well as user-defined CQS structure.
+
+The package accompanies the methodology developed in @John2026
+
+
+# Commutative quadratic subspaces
+
+The methodology implemented in **TestCQS** is based on the theory of **commutative quadratic subspaces**. Recall that a subspace $\mathcal V$ of the linear space of real symmetric matrices is a quadratic subspace if $\boldsymbol\Omega \in \mathcal V$ implies $\boldsymbol\Omega^2\in \mathcal V$; cf. @Seely71. A quadratic subspace is commutative if every pair of matrices from this subspace commutes under matrix multiplication. As a consequence, all matrices belonging to the subspace can be simultaneously diagonalized by the same orthogonal matrix.
+
+More precisely, commutativity property admits an equivalent, computationally convenient characterization in terms of the basis matrices of $\mathcal{V}$. In particular, every matrix
+$\boldsymbol\Omega \in \mathcal{V}$ admits the spectral representation
+
+\[
+\boldsymbol\Omega = \mathbf H \boldsymbol\Lambda \mathbf H^\top,
+\]
+
+where
+
+- $\boldsymbol H$ is an orthogonal basis matrix representing an eigenspace decomposition defining the selected commutative quadratic subspace of $\mathcal{V}$,
+- $\boldsymbol\Lambda$ is a diagonal matrix of eigenvalues.
+
+Since several eigenvalues may be equal, it is convenient to partition the columns of $\boldsymbol H$ into groups corresponding to common eigenspaces. If the distinct eigenvalues have multiplicities $q_1,\ldots,q_k$, then the package stores these multiplicities in the vector $\mathbf{qq} = c(q_1, \ldots, q_k)$. The columns of $\boldsymbol H$ are ordered so that the first $\mathbf{qq}[1]$ columns correspond to the first eigenvalue, say $\mathbf H_1:q\times q_1$, the next $\mathbf{qq}[2]$ columns correspond to the second, say $\mathbf H_2:q\times q_2$, and so on. This representation completely characterizes the covariance structure under the null hypothesis, which may be represented as
+\[
+\boldsymbol\Omega_0=\sum_{i=1}^k \lambda_i \mathbf V_i,
+\]
+where $\lambda_i$ are the distinct eigenvalues of $\boldsymbol\Omega_0$ such that $\boldsymbol\Omega_0$ belongs to $\mathcal V$ which is a subspace of a linear space, and $\mathbf V_i=\mathbf H_i\mathbf H'_i$. Note that $q_i$ is the corresponding multiplicity of $\lambda_i$. Following @Seely71, Lemma 6, the quadratic subspace is commutative if and only if the matrices $\mathbf V_i$ are idempotent and pairwise orthogonal, that is, $\mathbf V_i^2=\mathbf V_i$ and $\mathbf V_i\mathbf V_j=\mathbf 0$ for all $i\not=j$ , $i,j=1\dots,k$.
+
+Consequently, every commutative quadratic subspace is completely characterized by two quantities:
+
+- the orthogonal basis matrix $\boldsymbol H$,
+- the vector of eigenvalue multiplicities $\mathbf{qq}$.
+
+The **TestCQS** package provides built-in support for a wide range of commonly used CQS structures. These structures can be specified directly in the main testing function by selecting the corresponding structure name, without the need to construct $\boldsymbol H$ or $\mathbf{qq}$ explicitly.
+
+For users interested in the underlying representation, the package also provides a collection of `basis_*()` functions that generate the corresponding orthogonal basis matrix and multiplicity vector. Finally, completely user-defined commutative quadratic subspaces can be analyzed by supplying a custom basis matrix $\boldsymbol H$ together with the associated multiplicity vector $\mathbf{qq}$.
+
+
+# Constructing basis matrices
+
+The **TestCQS** package provides a collection of functions for constructing the orthogonal basis matrix $\boldsymbol H$ and the corresponding vector of eigenvalue multiplicities $\mathbf{qq}$. Every function returns a list with two components,
+
+- $\boldsymbol H$ - the orthogonal basis matrix ,
+- $\mathbf{qq}$ - the vector of multiplicities of the distinct eigenvalues.
+
+These objects can be supplied directly to the testing procedure or used to inspect the eigenspace representation of a covariance structure.
+
+For all built-in covariance structures, users may simply specify the corresponding structure name in `runTestCQS()`, for example `H = "CS"` or `H = "BCT_CT"`. Explicit construction of `H` and `qq` is only necessary for user-defined covariance structures or when the eigenspace decomposition is of independent interest.
+
+## Ordinary multivariate structures
+
+For ordinary multivariate models, the package implements four commonly used covariance structures:
+
+| Structure | Function |
+|-----------|----------|
+| Sphericity | `basis_S(q)` |
+| Diagonality | `basis_D(q)` |
+| Compound symmetry | `basis_CS(q)` |
+| Circular Toeplitz | `basis_CT(q)` |
+
+Each function requires only the matrix dimension `q`.
+
+```r
+library(TestCQS)
+
+basis <- basis_CS(q = 6)
+
+basis$H      # orthogonal basis matrix
+basis$qq     # eigenvalue multiplicities
+```
+
+For example, a compound symmetry structure has two distinct eigenvalues: one corresponding to the common mean direction and one corresponding to its orthogonal complement.
+
+
+## Doubly multivariate structures
+
+For doubly multivariate models, **TestCQS** provides basis generators for a wide range of covariance structures. Most structures are obtained by combining a **between-block covariance structure** with a **within-block covariance structure**. The naming convention follows the pattern
+
+```r
+basis_<between>_<within>()
+```
+
+where the first part specifies the covariance structure among blocks and the second part specifies the covariance structure within each block.
+
+The implemented families are
+
+| Prefix | Between-block structure |
+|--------|-------------------------|
+| `BS` | Block sphericity |
+| `BD` | Block diagonality |
+| `BCS` | Block compound symmetry |
+| `BCT` | Block circular Toeplitz |
+
+combined with the within-block structures
+
+| Suffix | Within-block structure |
+|--------|------------------------|
+| `_S` | Sphericity |
+| `_D` | Diagonality |
+| `_CS` | Compound symmetry |
+| `_CT` | Circular Toeplitz |
+
+For example,
+
+```r
+basis <- basis_BCS_CS(p = 4, m = 5)
+```
+
+constructs the basis matrix for a doubly multivariate model with
+
+- compound symmetry between blocks,
+- compound symmetry within each block.
+
+Similarly,
+
+```r
+basis_BD_CT(p = 3, m = 8)
+basis_BCT_D(p = 5, m = 4)
+basis_BS_S(p = 6, m = 3)
+```
+
+generate basis matrices for other combinations of supported structures.
+
+In addition to these combinations, the package also provides basis generators for the following special structures:
+
+- **Uniform Block Structure with Compound Symmetry block (UBS-CS)**
+
+```r
+basis_UBS_CS(p, m_vec)
+```
+
+where `m_vec` specifies the sizes of the individual blocks.
+
+- **Double Compound Symmetry (DCS)**
+
+```r
+basis_DCS(p, m)
+```
+
+which represents a special covariance structure frequently used in doubly multivariate repeated-measures models.
+
+Each function returns the corresponding orthogonal basis matrix together with the multiplicities of the distinct eigenvalues.
+
+The currently implemented basis generators are summarized in the following table.
+
+```{r doubly_basis, echo=FALSE, results='asis'}
+knitr::kable(
+  data.frame(
+    "Structure family" = c(
+      "Ordinary multivariate",
+      "Block sphericity (BS)",
+      "Block diagonality (BD)",
+      "Block compound symmetry (BCS)",
+      "Block circular Toeplitz (BCT)",
+      "Uniform block structure (UBS)",
+      "Double compound symmetry (DCS)"
+    ),
+    "Available basis generators" = c(
+      "`basis_S()`, `basis_D()`, `basis_CS()`, `basis_CT()`",
+      "`basis_BS_S()`, `basis_BS_D()`, `basis_BS_CS()`, `basis_BS_CT()`",
+      "`basis_BD_S()`, `basis_BD_D()`, `basis_BD_CS()`, `basis_BD_CT()`",
+      "`basis_BCS_S()`, `basis_BCS_D()`, `basis_BCS_CS()`, `basis_BCS_CT()`",
+      "`basis_BCT_S()`, `basis_BCT_D()`, `basis_BCT_CS()`, `basis_BCT_CT()`",
+      "`basis_UBS_CS()`",
+      "`basis_DCS()`"
+    ),
+    check.names = FALSE
+  ),
+  caption = "Built-in basis generators implemented in TestCQS.",
+  escape = FALSE,
+  booktabs = TRUE
+)
+```
+
+## User-defined structures
+
+Although the package includes many commonly used covariance structures, the testing methodology is applicable to **any** commutative quadratic subspace.
+
+Users may therefore construct their own orthogonal basis matrix
+$\boldsymbol H$ and specify the associated vector of eigenvalue multiplicities $\mathbf{qq}$. The only requirements are that
+
+- the columns of $\boldsymbol H$ form an orthonormal basis,
+- $\mathbf{qq}$ contains the multiplicities of the distinct eigenspaces represented by consecutive columns of $\boldsymbol H$.
+
+For example,
+
+```r
+H <- qr.Q(qr(matrix(rnorm(36), 6, 6)))
+qq <- c(2, 1, 3)
+```
+
+defines a six-dimensional CQS with three distinct eigenspaces of dimensions 2, 1 and 3, respectively.
+
+This flexibility allows the package to be applied to covariance structures that are not included among the built-in basis generators.
+
+
+# Running the tests
+
+This section demonstrates a typical workflow in **TestCQS**. We first simulate data from a multivariate normal distribution with a known covariance structure, then test both the correct and an incorrect covariance model, and finally interpret the results.
+
+## Simulate data
+
+For illustration, we generate observations from a six-dimensional multivariate normal distribution whose covariance matrix has a compound symmetry structure.
+
+```r
+library(MASS)
+
+set.seed(1234)
+
+q <- 6
+n <- 100
+
+Sigma <- matrix(0.5, q, q)
+diag(Sigma) <- 1
+
+X <- MASS::mvrnorm(
+  n = n,
+  mu = rep(0, q),
+  Sigma = Sigma
+)
+```
+
+The generated covariance matrix satisfies the compound symmetry assumption, making it an appropriate model for the subsequent test.
+
+## Test the correct model
+
+The package contains built-in support for the most common covariance structures. To test whether the covariance matrix has a compound symmetry structure, it is sufficient to specify the corresponding structure name.
+
+```r
+result <- runTestCQS(
+  X = X,
+  q = 6,
+  H = "CS"
+)
+
+result
+```
+
+Alternatively, the same model can be specified explicitly using the corresponding basis generator.
+
+```r
+basis <- basis_CS(q)
+
+result2 <- runTestCQS(
+  X = X,
+  H = basis$H,
+  qq = basis$qq
+)
+```
+
+Both approaches produce identical results.
+
+## Test an incorrect model
+
+Suppose we instead test whether the covariance matrix is diagonal.
+
+```r
+result_wrong <- runTestCQS(
+  X = X,
+  H = "D"
+)
+
+result_wrong
+```
+
+Since the simulated covariance matrix is not diagonal, the null hypothesis is expected to be rejected.
+
+## Interpret the output
+
+The function returns an object of class `TestCQS`.
+
+```r
+summary(result)
+```
+
+The output contains
+
+| Output | Meaning |
+|-----------|-------------|
+| `lr` | Likelihood ratio test statistic |
+| `rs` | Rao score test statistic |
+| `pval_lrt` | Asymptotic chi-squared p-value for the likelihood ratio test |
+| `pval_rst` | Asymptotic chi-squared p-value for the Rao score test |
+| `p_lr` | Exact p-value for the likelihood ratio test |
+| `p_rs` | Monte Carlo p-value for the Rao score test (if simulated) |
+
+The interpretation is straightforward.
+
+- **Large p-values** indicate that the observed data are compatible with the proposed covariance structure.
+
+- **Small p-values** indicate evidence against the proposed covariance structure, suggesting that a more general model should be considered.
+
+By default, runTestCQS() computes asymptotic p-values for both the likelihood ratio and Rao score tests together with the exact p-value of the likelihood ratio test. For moderate or small sample sizes, the exact likelihood ratio p-value (`p_lr`) is generally preferred over the asymptotic approximation. Estimation of the empirical Rao score p-value requires Monte Carlo simulation and is therefore disabled by default (trials = 0). Users may enable it by specifying a positive value of trials.
+
+
+# References

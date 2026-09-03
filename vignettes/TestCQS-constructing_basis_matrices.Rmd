@@ -1,0 +1,3535 @@
+---
+title: "Constructing Basis Matrices for Commutative Quadratic Subspaces"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{Constructing Basis Matrices for Commutative Quadratic Subspaces}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+# Introduction
+
+The testing procedures implemented in **TestCQS** require the spectral
+representation of the null covariance (or scale) structure.
+Rather than specifying the covariance matrix directly, every commutative
+quadratic subspace is represented by
+
+- an orthogonal basis matrix `H`,
+- a vector `qq` containing the multiplicities of the distinct eigenvalues.
+
+The package provides a large collection of `basis_*()` functions that
+construct these objects automatically for many commonly used covariance
+structures.
+
+This vignette describes the available basis generators and illustrates
+their use.
+
+```r
+library(TestCQS)
+```
+
+
+# Notation and construction principles
+
+Throughout this vignette we use the following notation.
+
+| Symbol | Description |
+|:-------|:------------|
+| \(\otimes\) | Kronecker product. |
+| \(q\) | Dimension of an ordinary multivariate observation. |
+| \(p\) | Number of blocks in a doubly multivariate model. |
+| \(m\) | Dimension of each block in a doubly multivariate model. |
+| \(\mathbf 1_q\) | \(q\)-dimensional vector of ones. | 
+| \(\mathbf I_q\) | Identity matrix of order \(q\). |
+| \(\mathbf J_q\) | Matrix of ones of order \(q\times q\). |
+| \(\mathbf 0_q\) | Zero matrix of order \(q\times q\). |
+| \(\mathbf e_{i,q}\) | The \(i\)-th canonical basis vector of \(\mathbb R^q\). |
+| \(\mathbf E_{ij}\) | \(m\times m\) matrix having a single 1 in position \((i,j)\) and \((j,i)\) and zeros elsewhere. |
+| \(\mathbf P_{1_q}=\tfrac1q\mathbf J_q\) | Orthogonal projection onto the subspace spanned by the vector of ones \(\mathbf 1_q\). |
+| \(\mathbf Q_{1_q}=\mathbf I_q-\mathbf P_{1_q}\) | Orthogonal projection onto the orthogonal complement of the vector of ones \(\mathbf 1_q\). |
+
+The testing procedures implemented in `TestCQS` are based on the
+spectral decomposition of covariance matrices. Consequently, every basis
+generator returns
+
+- an orthogonal basis matrix `H`, whose columns span the
+  eigenspaces corresponding to equal eigenvalues,
+- a vector `qq` containing the multiplicities of these eigenspaces.
+
+For the ordinary multivariate covariance structures we denote the basis
+matrices by
+
+| Covariance structure | Basis matrix | Generator |
+|:---------------------|:-------------|:----------|
+| Sphericity | \(\mathbf H_{S,q}=\mathbf I_q\) | `basis_S(q)` |
+| Diagonality | \(\mathbf H_{D,q}=\mathbf I_q\) | `basis_D(q)` |
+| Compound symmetry | \(\mathbf H_{CS,q}\) | `basis_CS(q)` |
+| Circular Toeplitz | \(\mathbf H_{CT,q}\) | `basis_CT(q)` |
+
+Here, \(\mathbf H_{CS,q}\) and \(\mathbf H_{CT,q}\) denote the ordinary
+compound symmetry and circular Toeplitz basis matrices of dimension
+\(q\), respectively, as defined in the *Ordinary multivariate structures* section.
+
+Notice that the basis matrices for sphericity and diagonality are both equal to the identity matrix. Nevertheless, we distinguish the notation \(\mathbf H_{S,q}\) and \(\mathbf H_{D,q}\) because they correspond to different covariance structures and play different roles in the construction of
+doubly multivariate covariance models.
+
+
+# The output of basis generators
+
+Every basis generator returns the same type of object.
+
+```r
+obj <- basis_CS(5)
+
+names(obj)
+```
+
+The returned list contains
+
+- `H` – an orthogonal matrix whose columns are arranged according to  groups of equal eigenvalues,
+
+- `qq` – a vector of eigenvalue multiplicities.
+
+For example,
+
+```r
+obj$qq
+```
+
+indicates that the first eigenvalue has multiplicity one, whereas the second eigenvalue has multiplicity four.
+
+The dimensions satisfy
+
+```r
+dim(obj$H)
+sum(obj$qq)
+```
+
+where the number of columns of `H` always equals the sum of the multiplicities.
+
+The objects returned by every `basis_*()` function can be supplied directly
+to `runTestCQS()`. For the built-in covariance structures this is optional,
+since `runTestCQS()` generates the basis automatically from the structure
+name. Nevertheless, the following two calls are equivalent.
+
+```r
+obj <- basis_CS(6)
+
+res1 <- runTestCQS(X, q = 6, H = "CS")
+res2 <- runTestCQS(X, H = obj$H, qq = obj$qq)
+```
+
+The explicit representation is particularly useful when constructing
+user-defined commutative quadratic subspaces or when inspecting the basis
+matrices returned by the package.
+
+
+# Ordinary multivariate structures
+
+For an ordinary multivariate model the covariance matrix has dimension \(q \times q\). The package implements four commonly used covariance structures.
+
+|Structure|Generator|
+|:---------|:----------------|
+|Sphericity|`basis_S(q)`|
+|Diagonality|`basis_D(q)`|
+|Compound symmetry|`basis_CS(q)`|
+|Circular Toeplitz|`basis_CT(q)`|
+
+
+## Sphericity
+
+The sphericity structure assumes that all variables have the same variance
+and are mutually uncorrelated. Consequently, the covariance matrix is a
+multiple of the identity matrix,
+
+\[
+\boldsymbol{\Omega} = \left(\begin{smallmatrix}\lambda & 0 & \cdots & 0 \\
+                                 0 & \lambda & \cdots & 0 \\
+                                 \vdots & \vdots & \ddots & \vdots \\
+                                 0 & 0 & \cdots & \lambda 
+                      \end{smallmatrix}\right) = \lambda \mathbf I_q.
+\]
+
+Since all eigenvalues are equal, the covariance matrix possesses only one
+distinct eigenvalue, with multiplicity \(q\). Any orthogonal matrix may therefore serve
+as the matrix of eigenvectors. The package uses the identity
+matrix as the default orthogonal basis.
+
+```r
+obj <- basis_S(6)
+
+obj$qq
+```
+
+returns
+
+```
+[1] 6
+```
+
+indicating that the single eigenvalue has multiplicity six.
+
+The corresponding basis matrix \(\mathbf H_{S,q}\), is obtained by
+
+```r
+obj$H
+```
+
+and, for the sphericity structure, is simply the identity matrix (\mathbf I_q).
+
+**Statistical interpretation:** The sphericity structure represents an
+isotropic covariance model. All variables have the same variance and
+there is no covariance between distinct variables. Consequently,
+variability is the same in every direction of the variable space, and the
+covariance matrix is proportional to the identity matrix.
+
+Sphericity often serves as a benchmark or null model in multivariate
+analysis. Testing sphericity can be used to assess whether the covariance
+matrix is compatible with an isotropic structure or whether a more
+general covariance model is required.
+
+> **Typical applications**
+>
+> - Reference model in multivariate hypothesis testing.
+> - Isotropic measurement-error models.
+> - Situations in which no direction in the variable space is assumed to
+    have a different variability from any other direction.
+
+
+## Diagonality
+
+Under the diagonal covariance structure,
+
+\[
+\boldsymbol{\Omega} = \left(\begin{smallmatrix} \lambda_1 & 0 & \cdots & 0 \\
+                                                0 & \lambda_2 & \cdots & 0 \\
+                                                \vdots & \vdots & \ddots & \vdots \\
+                                                0 & 0 & \cdots & \lambda_q
+                      \end{smallmatrix}\right) = \operatorname{diag}(\lambda_1,\ldots,\lambda_q),
+\]
+
+the variables are mutually uncorrelated, while each variable may have a
+different variance.
+
+In the generic case where the diagonal elements are distinct, the
+covariance matrix has \(q\) distinct eigenvalues, each with multiplicity
+one. Consequently,
+
+```r
+basis_D(6)$qq
+```
+
+returns
+
+```
+[1] 1 1 1 1 1 1
+```
+
+The corresponding orthogonal basis \(\mathbf H_{D,q}\) is the identity matrix \(\mathbf I_q\).
+In this case, each coordinate axis forms a one-dimensional eigenspace.
+The columns of \(\mathbf H_{D,q}\) therefore correspond directly to the
+individual variables.
+
+**Statistical interpretation:** A diagonal covariance matrix assumes that
+the variables are uncorrelated, while allowing each variable to have its
+own variance. Thus, unlike the sphericity structure, diagonality does not
+impose a common variance across variables.
+
+The diagonal structure is useful when the variables are believed to be
+uncorrelated but may exhibit substantially different levels of
+variability. It can also serve as an intermediate model between the fully
+unstructured covariance matrix and the more restrictive sphericity
+structure.
+
+> **Typical applications**
+>
+> - Variables measured on different scales but assumed to be uncorrelated.
+> - Preliminary model assessment before introducing a more complex covariance structure.
+> - Testing whether the off-diagonal covariance terms can be neglected
+    without imposing the additional equal-variance assumption of sphericity.
+
+
+## Compound symmetry
+
+Under the compound symmetry (CS) structure, all variables have the same
+variance and every pair of distinct variables has the same covariance.
+Consequently, the covariance matrix has the form
+
+\[
+\boldsymbol{\Omega} = \left(\begin{smallmatrix} \sigma^2 & \sigma^2\rho & \cdots & \sigma^2\rho \\
+                                                \sigma^2\rho & \sigma^2 & \cdots & \sigma^2\rho \\
+                                                \vdots & \vdots & \ddots & \vdots \\
+                                                \sigma^2\rho & \sigma^2\rho & \cdots & \sigma^2
+                      \end{smallmatrix}\right) = \sigma^2(1-\rho)\mathbf I_q + \sigma^2\rho\mathbf J_q.
+\]
+
+The parameter \(\sigma^2\) represents the common variance of all variables, while \(\rho\) represents the correlation between every pair of distinct variables.
+
+While the parametrization by \(\sigma^2\) and \(\rho\) is commonly used in multivariate statistics, since it provides a direct statistical interpretation of the parameters, `TestCQS` works with the spectral decomposition of the covariance matrix. Using the orthogonal projections \(\mathbf P_q\) and \(\mathbf Q_q\) introduced in the notation section, the compound symmetry covariance matrix can be written as
+
+\[
+\boldsymbol{\Omega} = \lambda_1\mathbf P_{1_q} + \lambda_2\mathbf Q_{1_q}.
+\]
+
+The connection between the two parametrizations is
+
+\[
+\lambda_1=\sigma^2(1+(q-1)\rho), \qquad \lambda_2=\sigma^2(1-\rho).
+\]
+
+Thus, in the generic case \(\rho\neq 0\), the compound symmetry structure has two distinct eigenvalues:
+
+- \(\lambda_1\) with multiplicity \(1\),
+- \(\lambda_2\) with multiplicity \(q-1\).
+
+The multiplicities are obtained from the basis generator by
+
+```r
+obj <- basis_CS(6)
+
+obj$qq
+```
+
+which returns
+
+```
+[1] 1 5
+```
+
+The basis matrix returned by `basis_CS(q)` contains the corresponding
+eigenvectors ordered according to these multiplicities. Its first column is
+the normalized constant vector \(\tfrac{1}{\sqrt{q}}\mathbf 1_q\), as can
+be verified by
+
+```r
+round(obj$H[, 1], 3)
+```
+
+This vector spans the one-dimensional eigenspace associated with
+\(\lambda_1\). The remaining \(q-1\) columns form an orthonormal basis of the eigenspace associated with (\lambda_2), which is the subspace orthogonal to \(\mathbf 1_q\).
+
+Consequently, the basis matrix can be represented as
+
+\[
+\mathbf H_{CS,q}=\left(\tfrac{1}{\sqrt{q}}\mathbf 1_q: \widetilde{\mathbf Q}\right),
+\]
+
+where \(\widetilde{\mathbf Q}\) is a \(q\times q-1\) matrix whose columns form any orthonormal basis of the subspace orthogonal to \(\mathbf 1_q\).
+
+The particular choice of \(\widetilde{\mathbf Q}\) is not unique. Any
+orthonormal basis of this subspace gives a valid spectral basis. The
+generator `basis_CS(q)` provides one particular orthonormal choice.
+
+
+**Statistical interpretation:** Compound symmetry assumes that all variables have equal variances and that every pair of variables has the same covariance. Consequently, the variables
+are exchangeable, meaning that no variable plays a distinguished role.
+
+From the spectral perspective, the total variability is decomposed into two
+orthogonal components:
+
+- variation in the overall mean direction, represented by \(\mathbf P_{1_q}\), and
+- variation orthogonal to the mean direction, represented by \(\mathbf Q_{1_q}\).
+
+This decomposition explains why only two distinct eigenvalues are required to
+describe the entire covariance structure.
+
+> **Typical applications**
+>
+> - Repeated-measures experiments in which all measurement occasions have the same variance and the        same pairwise covariance.
+> - Balanced experimental designs where treatment levels are considered exchangeable.
+> - Clustered or grouped observations exhibiting homogeneous within-cluster dependence.
+
+
+## Circular Toeplitz
+
+A circular Toeplitz (CT) covariance matrix is completely determined by its
+first row,
+
+\[
+\boldsymbol{\Omega}_{\mathrm{CT}}
+=
+\operatorname{Toep}(\tau_0,\tau_1,\tau_2,\tau_{\lfloor q/2\rfloor},
+\tau_{\lfloor q/2\rfloor-1},\ldots,\tau_2,\tau_1),
+\]
+
+or, equivalently,
+
+\[
+\boldsymbol{\Omega} = \sum_{i=0}^{\lfloor q/2\rfloor}\tau_i\,\mathbf{SC}(q,i),
+\]
+
+where \(\mathbf{SC}(q,i)\) denotes the symmetric circular matrix having ones
+at circular distance \(i\) and zeros elsewhere. Thus,
+\(\mathbf{SC}(q,i)\) contains ones on the \(i\)-th super- and
+sub-diagonals, with the entries continuing across the boundaries by
+wrap-around. For example, the circular Toeplitz matrices for \(q=5\) and \(q=6\) have the forms
+
+\[
+\boldsymbol{\Omega} = \left(\begin{smallmatrix} \tau_0 & \tau_1 & \tau_2 & \tau_2 & \tau_1 \\
+                                                \tau_1 & \tau_0 & \tau_1 & \tau_2 & \tau_2 \\
+                                                \tau_2 & \tau_1 & \tau_0 & \tau_1 & \tau_2 \\
+                                                \tau_2 & \tau_2 & \tau_1 & \tau_0 & \tau_1 \\
+                                                \tau_1 & \tau_2 & \tau_2 & \tau_1 & \tau_0
+                      \end{smallmatrix}\right), \qquad
+\boldsymbol{\Omega} = \left(\begin{smallmatrix} \tau_0 & \tau_1 & \tau_2 & \tau_3 & \tau_2 & \tau_1 \\
+                                                \tau_1 & \tau_0 & \tau_1 & \tau_2 & \tau_3 & \tau_2 \\
+                                                \tau_2 & \tau_1 & \tau_0 & \tau_1 & \tau_2 & \tau_3 \\
+                                                \tau_3 & \tau_2 & \tau_1 & \tau_0 & \tau_1 & \tau_2 \\
+                                                \tau_2 & \tau_3 & \tau_2 & \tau_1 & \tau_0 & \tau_1 \\
+                                                \tau_1 & \tau_2 & \tau_3 & \tau_2 & \tau_1 & \tau_0
+                      \end{smallmatrix}\right).
+\]
+
+Unlike an ordinary Toeplitz matrix, the first row is obtained from the last
+row by a circular shift. Consequently, every row is simply a cyclic shift of
+the preceding one.
+
+Although this representation provides an intuitive interpretation of the
+covariance parameters \(\tau_0,\tau_1,\ldots,\tau_{\lfloor q/2\rfloor}\), `TestCQS` is based on the
+spectral representation of the covariance matrix.
+
+A fundamental property of
+the circular Toeplitz structure is that every circular Toeplitz covariance
+matrix of the same dimension shares the same orthonormal
+eigenvectors. Only the corresponding eigenvalues depend on the particular covariance
+parameters.
+
+Although the individual eigenvectors within a multiple-eigenvalue
+eigenspace are not unique, `TestCQS` uses a fixed orthonormal basis obtained
+from the real Fourier representation. Specifically, let
+
+\[
+\mathbf H_{CT,q}=(t_{ij}), \qquad t_{ij} = q^{-1/2}\left[\cos\left(\tfrac{2\pi ij}{q}\right)
++ \sin\left(\tfrac{2\pi ij}{q}\right)\right].
+\]
+
+The matrix returned by `basis_CT(q)` is obtained from these Fourier
+eigenvectors by a specific permutation of their columns. The first column
+is retained as the first column. The remaining columns are then arranged
+symmetrically from the two ends of the original Fourier basis: the second
+column is followed by the last column, the third column by the
+next-to-last column, and so on.
+
+Thus, the columns of the returned basis are ordered as
+
+\[
+1,\;2,\;q,\;3,\;q-1,\;4,\;q-2,\;\ldots.
+\]
+
+This ordering is chosen so that columns corresponding to the same
+eigenvalue occur consecutively. It therefore makes the eigenspace
+multiplicities particularly transparent in the vector `qq`.
+
+For odd \(q\), the ordering terminates with the two central columns
+
+\[
+\tfrac{q+1}{2} = \left\lfloor\frac q2\right\rfloor+1,\qquad\tfrac{q+3}{2} =
+\left\lfloor\tfrac q2\right\rfloor+2.
+\]
+
+Consequently, the multiplicity pattern is
+
+\[
+(1,2,\ldots,2).
+\]
+
+For even \(q\), the ordering terminates with the single central column
+
+\[
+\tfrac q2+1 = \left\lfloor\tfrac q2\right\rfloor+1,
+\]
+
+which corresponds to the additional one-dimensional highest-frequency
+eigenspace. The multiplicity pattern is therefore
+
+\[
+(1,2,\ldots,2,1).
+\]
+
+For example, for \(q=7\), the columns are ordered as
+
+\[
+1,2,7,3,6,4,5,
+\]
+
+which groups the eigenvectors as
+
+\[
+1\mid(2,7)\mid(3,6)\mid(4,5).
+\]
+
+For \(q=6\), the ordering is
+
+\[
+1,2,6,3,5,4,
+\]
+
+giving
+
+\[
+1\mid(2,6)\mid(3,5)\mid4.
+\]
+
+These groupings correspond exactly to the multiplicity vectors returned by
+`basis_CT()`:
+
+```r
+basis_CT(7)$qq
+# [1] 1 2 2 2
+
+basis_CT(6)$qq
+# [1] 1 2 2 1
+```
+
+Consequently, every circular Toeplitz covariance matrix admits the spectral
+representation
+
+\[
+\boldsymbol{\Omega} = \sum_{i=1}^{\lfloor q/2\rfloor+1}\lambda_i\,\mathbf V_i,
+\]
+
+where
+
+\[
+\lambda_k = \tau_0 + 2\sum_{j=1}^{\lfloor(q-1)/2\rfloor}\tau_j\cos\left(\frac{2\pi kj}{q}\right)
++ \begin{cases} \tau_{q/2}(-1)^k,&q\text{ even},\\ 0,&q\text{ odd},\end{cases}
+\]
+
+and where \(\mathbf V_i\) are the projection matrices onto the subspaces spanned by the
+columns of \(\mathbf H_{CT,q}\) (after permutation described above) corresponding to distinct eigenvalues (number of columns is determined by the multiplicity of eigenvalue).
+
+The basis matrix returned by
+
+```r
+obj <- basis_CT(7)
+
+round(obj$H, 3)
+```
+
+contains the common orthonormal eigenvectors shared by every
+\(7\times7\) circular Toeplitz covariance matrix. Since \(q=7\) is odd,
+the first column corresponds to the eigenvalue of mutiplicity one
+whereas each subsequent pair of columns corresponds to an eigenvalue of
+multiplicity two. For even dimensions, the final column similarly corresponds
+to the additional simple eigenvalue associated with the highest-frequency component.
+
+To illustrate this common eigenbasis, consider two different circular Toeplitz covariance matrices. Using the basis returned by `basis_CT(q)`, both matrices are diagonalized simultaneously.
+
+```r
+H <- basis_CT(6)$H
+
+Omega1 <- toeplitz(c(4, 2, 1, 0, 1, 2))
+Omega2 <- toeplitz(c(3, 1, 0.5, -0.2, 0.5, 1))
+
+round(t(H) %*% Omega1 %*% H, 6)
+round(t(H) %*% Omega2 %*% H, 6)
+```
+
+In both cases, the transformed matrices are diagonal, demonstrating that the
+basis returned by `basis_CT(q)` diagonalizes every circular Toeplitz covariance
+matrix of the given dimension. Changing the covariance parameters affects only
+the eigenvalues, while the eigenvectors remain unchanged.
+
+**Statistical interpretation:** The circular Toeplitz structure assumes that
+the covariance between two variables depends only on their circular distance.
+Variables separated by the same circular lag therefore have identical covariance.
+
+From the spectral point of view, circular Toeplitz covariance matrices are
+diagonalized by a discrete Fourier-type basis. This common eigenbasis makes
+the spectral representation particularly attractive for statistical inference,
+since the covariance structure is completely characterized by its eigenvalues.
+
+> **Typical applications**
+>
+> - Periodic or cyclic measurements (e.g., hours of the day, days of the week, months of the year or        repeated measurements around a circular object such as flower petals).
+> - Signals observed on a circle or ring.
+> - Directional and angular data.
+> - Image and signal processing problems with periodic boundary conditions.
+
+
+# Doubly multivariate structures
+
+A doubly multivariate model arises when each observation is naturally
+organized in two dimensions. Specifically, a \(pm\)-dimensional observation
+vector is partitioned into \(p\) subvectors (or blocks), each of dimension
+\(m\),
+
+\[
+\mathbf y = \left(\mathbf y_1^\top,\ldots,\mathbf y_p^\top\right)^\top,
+\qquad \mathbf y_i\in\mathbb R^m.
+\]
+
+The two dimensions can have different statistical interpretations. For
+example, the \(p\) blocks may correspond to subjects, experimental groups,
+spatial locations, or other higher-level units, while the \(m\) variables
+within each block may represent repeated measurements, response variables,
+or measurement occasions.
+
+The covariance matrix therefore has dimension \(pm\times pm\) and describes
+both the covariance structure within individual blocks and the relationship
+between different blocks. The basis generators provided by `TestCQS` allow
+these two aspects to be specified separately through a between-block
+structure and a within-block covariance structure.
+
+In the following sections, we first consider four families of between-block structures—
+block sphericity, block diagonality, block compound symmetry, and block circular
+Toeplitz—and combine them with the corresponding within-block covariance structures.
+This produces the doubly multivariate covariance structures implemented in
+the package.
+
+|Family|Generators|
+|:------|:---------|
+|Block sphericity|`basis_BS_*()`|
+|Block diagonality|`basis_BD_*()`|
+|Block compound symmetry|`basis_BCS_*()`|
+|Block circular Toeplitz|`basis_BCT_*()`|
+
+Each family can be combined with one of the within-block covariance structures:
+
+- `S` – sphericity,
+- `D` – diagonality,
+- `CS` – compound symmetry,
+- `CT` – circular Toeplitz.
+
+Two combinations are redundant:
+
+- `BS_S` reduces to the ordinary multivariate spherical structure `S`,
+- `BD_D` reduces to the ordinary multivariate diagonal structure `D`.
+
+Consequently, **14 distinct basis generators** are implemented  fo the
+between-block/within-block construction in `TestCQS`.
+
+The naming convention follows the pattern
+
+```text
+basis_<between-block structure>_<within-block structure>()
+```
+
+For example,
+
+- `basis_BS_CT()` generates a block sphericity structure with circular
+  Toeplitz covariance within each block,
+- `basis_BCS_CS()` generates a block compound symmetry structure with
+  compound symmetry within each block,
+- `basis_BCT_D()` generates a block circular Toeplitz structure with
+  diagonal covariance within each block.
+
+
+Since these structures assume that each block of the observation vector
+have the same number of observations \(m\), that is, all within-blocks
+have the same dimension \(m\), the basis matrices for
+doubly multivariate covariance structures are constructed by combining
+a **between-block** basis with a **within-block** basis through the 
+Kronecker product. Thus, every doubly multivariate basis matrix implemented in
+``TestCQS`` has the unified form
+
+\[
+\boxed{
+\mathbf H =\mathbf H_{\mathrm{between}} \otimes \mathbf H_{\mathrm{within}}.
+}
+\]
+
+The same principle applies to the eigenvalue multiplicity vectors, that is, if
+\(qq_{S}\) and \(qq_{D}\) are the eigenvalue multiplicity vectors of sphericity
+and diagonality, respectively, then \(qq_{BS\_D} = qq_{S}\otimes qq_{D}\)
+is the eigenvalue multiplicity vector of block sphericity structure with
+diagonal blocks. This Kronecker-product construction applies to the fourteen
+structures obtained by combining the four supported between-block families with the
+four within-block structures, after removing the two redundant
+combinations described above.
+
+The fourteen built-in doubly multivariate basis generators therefore
+follow the simple construction principle summarized below.
+
+| Structure | Basis construction | Eigenvalue multiplicity vector |
+|:----------|:-------------------|:-------------------------------|
+| `BS_D` | \(\mathbf H_{S}\otimes\mathbf H_D\) | \(qq_{S}\otimes qq_{D}\) |
+| `BS_CS` | \(\mathbf H_{S}\otimes\mathbf H_{CS}\) | \(qq_{S}\otimes qq_{CS}\) |
+| `BS_CT` | \(\mathbf H_{S}\otimes\mathbf H_{CT}\) | \(qq_{S}\otimes qq_{CT}\) |
+| `BD_S` | \(\mathbf H_{D}\otimes\mathbf H_S\) | \(qq_{D}\otimes qq_{S}\) |
+| `BD_CS` | \(\mathbf H_{D}\otimes\mathbf H_{CS}\) | \(qq_{D}\otimes qq_{CS}\) |
+| `BD_CT` | \(\mathbf H_{D}\otimes\mathbf H_{CT}\) | \(qq_{D}\otimes qq_{CT}\) |
+| `BCS_S` | \(\mathbf H_{CS}\otimes\mathbf H_S\) | \(qq_{CS}\otimes qq_{S}\) |
+| `BCS_D` | \(\mathbf H_{CS}\otimes\mathbf H_D\) | \(qq_{CS}\otimes qq_{D}\) |
+| `BCS_CS` | \(\mathbf H_{CS}\otimes\mathbf H_{CS}\) | \(qq_{CS}\otimes qq_{CS}\) |
+| `BCS_CT` | \(\mathbf H_{CS}\otimes\mathbf H_{CT}\) | \(qq_{CS}\otimes qq_{CT}\) |
+| `BCT_S` | \(\mathbf H_{CT}\otimes\mathbf H_S\) | \(qq_{CT}\otimes qq_{S}\) |
+| `BCT_D` | \(\mathbf H_{CT}\otimes\mathbf H_D\) | \(qq_{CT}\otimes qq_{D}\) |
+| `BCT_CS` | \(\mathbf H_{CT}\otimes\mathbf H_{CS}\) | \(qq_{CT}\otimes qq_{CS}\) |
+| `BCT_CT` | \(\mathbf H_{CT}\otimes\mathbf H_{CT}\) | \(qq_{CT}\otimes qq_{CT}\) |
+
+The vector `qq` returned by each basis generator contains the
+multiplicities of the eigenspaces represented by the columns of
+\(\mathbf H\). Consequently,
+
+```r
+sum(obj$qq)
+```
+
+always equals the number of columns of `obj$H`, which is precisely the
+dimension of the corresponding covariance matrix. Moreover, the dimensions
+of the returned basis matrix always satisfy
+
+```r
+sum(obj$qq)
+```
+
+which equals \(pm\), the dimension of the covariance matrix.
+
+The construction principle above covers the fourteen doubly multivariate
+structures obtained by combining a between-block structure with a
+within-block structure. However, they are not the only doubly multivariate
+commutative quadratic structures implemented in `TestCQS`.
+The package also provides two additional commutative quadratic structures
+that do not arise from this direct Kronecker-product construction:
+
+- **Uniform block structure**, and
+- **Double complete symmetric structure**.
+
+Both structures belong to the class of commutative quadratic subspaces and
+therefore admit the spectral representation required by the testing
+procedures implemented in `TestCQS`. However, their eigenspace
+decompositions have a different form and their basis matrices are therefore
+constructed separately rather than by simply taking the Kronecker product of
+a between-block and a within-block basis.
+
+Consequently, the fourteen structures listed above should be viewed as the
+main family of doubly multivariate structures generated by the
+between-block/within-block construction, while the uniform block and
+double complete symmetry structures are additional built-in CQS models.
+They are described separately in the following sections.
+
+The final section of this vignette describes how users can construct and
+use their own commutative quadratic covariance structures.
+
+
+
+## Block sphericity family
+
+The block sphericity family assumes that the \(pm\)-dimensional observation
+vector is partitioned into \(p\) subvectors (blocks) of dimension \(m\),
+
+\[
+\mathbf y =
+\left(
+\mathbf y_1^\top,\ldots,\mathbf y_p^\top
+\right)^\top,
+\qquad
+\mathbf y_i\in\mathbb R^m.
+\]
+
+The defining assumption of block sphericity is that the blocks are mutually
+uncorrelated and share the same within-block covariance matrix. Thus, the
+covariance matrix has the block-diagonal form
+
+\[
+\boldsymbol{\Omega}
+=
+\mathbf I_p\otimes\boldsymbol{\Lambda}
+=
+\left(
+\begin{smallmatrix}
+\boldsymbol{\Lambda} & \mathbf 0_m & \cdots & \mathbf 0_m\\
+\mathbf 0_m & \boldsymbol{\Lambda} & \cdots & \mathbf 0_m\\
+\vdots & \vdots & \ddots & \vdots\\
+\mathbf 0_m & \mathbf 0_m & \cdots & \boldsymbol{\Lambda}
+\end{smallmatrix}
+\right),
+\]
+
+where \(p\) denotes the number of blocks, \(m\) the dimension of each block,
+and \(\boldsymbol{\Lambda}\) is the common \(m\times m\) within-block
+covariance matrix.
+
+Thus, the covariance structure separates naturally into two components. The
+between-block structure is spherical, represented by \(\mathbf I_p\), so
+different blocks are mutually uncorrelated and have identical covariance
+properties. The particular form of the within-block covariance matrix
+\(\boldsymbol{\Lambda}\) determines the specific member of the block
+sphericity family.
+
+In `TestCQS`, the three non-redundant members of this family are
+
+| Structure | Within-block covariance structure | Generator |
+| :-------- | :------------------------------- | :-------- |
+| `BS_D`    | Diagonality                      | `basis_BS_D(p,m)` |
+| `BS_CS`   | Compound symmetry                | `basis_BS_CS(p,m)` |
+| `BS_CT`   | Circular Toeplitz                | `basis_BS_CT(p,m)` |
+
+The corresponding basis matrices follow directly from the Kronecker-product
+construction described above. If \(\mathbf H_{S,p}=\mathbf I_p\) denotes the
+between-block basis and \(\mathbf H_{\mathrm{within},m}\) denotes the
+orthogonal basis associated with the chosen within-block covariance
+structure, then
+
+\[
+\mathbf H
+=
+\mathbf H_{S,p}\otimes\mathbf H_{\mathrm{within},m}
+=
+\mathbf I_p\otimes\mathbf H_{\mathrm{within},m}.
+\]
+
+Similarly, if \(\mathbf{qq}_{\mathrm{within}}\) denotes the vector of
+eigenvalue multiplicities for the within-block structure, then the
+multiplicity vector for the resulting block structure is
+
+\[
+\mathbf{qq}
+=
+\mathbf{1}_p\otimes\mathbf{qq}_{\mathrm{within}},
+\]
+
+where \(\mathbf 1_p\) denotes the \(p\)-dimensional vector of ones.
+
+Equivalently, each eigenvalue of the within-block covariance matrix occurs
+once in every block and therefore has its within-block multiplicity multiplied
+by \(p\).
+
+The following subsections describe the three members of the block sphericity
+family in detail.
+
+### Block sphericity with diagonal within-block structure (BS_D)
+
+The `BS_D` structure is obtained when the common within-block covariance
+matrix is diagonal,
+
+\[
+\boldsymbol{\Lambda}
+=
+\operatorname{diag}
+(\lambda_1,\ldots,\lambda_m).
+\]
+
+Consequently,
+
+\[
+\boldsymbol{\Omega}
+=
+\mathbf I_p\otimes
+\operatorname{diag}
+(\lambda_1,\ldots,\lambda_m).
+\]
+
+The variables within each block are therefore mutually uncorrelated, while
+each variable may have its own variance. Since the same diagonal covariance
+matrix is repeated across all \(p\) blocks, variables occupying the same
+position in different blocks have the same variance.
+
+From the spectral point of view,
+
+\[
+\boldsymbol{\Omega}
+=
+\sum_{i=1}^{m}
+\lambda_i
+\left(
+\mathbf I_p\otimes\mathbf E_{ii}
+\right),
+\]
+
+where \(\mathbf E_{ii}\) is the projection matrix onto the \(i\)-th coordinate
+axis of \(\mathbb R^m\).
+
+Thus, each within-block eigenvalue \(\lambda_i\) occurs in all \(p\) blocks.
+Assuming the \(m\) diagonal elements are distinct, the covariance matrix has
+\(m\) distinct eigenvalues, each with multiplicity \(p\).
+
+For example,
+
+```r
+obj <- basis_BS_D(p = 3, m = 4)
+
+obj$qq
+```
+
+returns
+
+```
+[1] 3 3 3 3
+```
+
+indicating that the covariance matrix has four distinct eigenvalues, each
+with multiplicity three.
+
+The corresponding basis matrix is
+
+\[
+\mathbf H = \mathbf H_{S,p}\otimes\mathbf H_{D,m} = \mathbf I_p\otimes\mathbf I_m = \mathbf I_{pm},
+\]
+
+with its columns ordered according to the repeated within-block eigenvalues.
+Each group of \(p\) columns corresponds to one within-block eigenvalue.
+
+**Statistical interpretation:** This `BS_D` structure assumes that
+
+- all blocks are statistically identical,
+- different blocks are mutually uncorrelated,
+- variables within each block are mutually uncorrelated,
+- the variance associated with a given within-block variable is the same across all blocks.
+
+Thus, variables occupying the same position within different blocks have
+the same variance, while different within-block variables may have
+different variances.
+
+> **Typical applications**
+>
+> - Repeated measurements on several independent experimental units when each
+    measurement variable has its own variance.
+> - Multisite experiments where sites are independent but identical variables
+    are measured at each site.
+> - Balanced multilevel studies with independent groups and heterogeneous
+    within-group variances.
+
+### Block sphericity with compound symmetry within-block structure (BS_CS)
+
+The BS_CS structure is obtained when the common within-block covariance
+matrix follows compound symmetry,
+
+\[
+\mathbf\Lambda = \sigma^2(1-\rho)\mathbf I_m + \sigma^2\rho\mathbf J_m = \left(\begin{smallmatrix}
+\sigma^2 & \sigma^2\rho & \cdots & \sigma^2\rho \\
+\sigma^2\rho & \sigma^2 & \cdots & \sigma^2\rho \\
+\vdots & \vdots & \ddots & \vdots \\
+\sigma^2\rho & \sigma^2\rho & \cdots & \sigma^2
+\end{smallmatrix}\right).
+\]
+
+Consequently,
+
+\[
+\boldsymbol{\Omega}
+=
+\sigma^2(1-\rho)(\mathbf I_p\otimes\mathbf I_m) + \sigma^2\rho(\mathbf I_p\otimes\mathbf J_m).
+\]
+
+Thus, different blocks are mutually uncorrelated and have the same compound
+symmetry covariance structure. Within each block, all variables have the same
+variance and every pair of distinct variables has the same covariance.
+
+Using the spectral decomposition of the compound symmetry structure,
+
+\[
+\boldsymbol{\Lambda} = \lambda_1\mathbf P_{1_m}
++ \lambda_2\mathbf Q_{1_m},
+\]
+
+where
+
+\[
+\lambda_1=\sigma^2(1+(m-1)\rho), \qquad \lambda_2=\sigma^2(1-\rho).
+\]
+
+Therefore,
+
+\[
+\boldsymbol{\Omega} = \lambda_1\left(\mathbf I_p\otimes\mathbf P_{1_m}\right)
++ \lambda_2\left(\mathbf I_p\otimes\mathbf Q_{1_m}\right).
+\]
+
+The first eigenvalue has multiplicity \(p\), since the mean direction occurs
+once in every block. The second eigenvalue has multiplicity \(p(m−1)\),
+corresponding to the orthogonal contrast subspace within each block.
+
+Thus,
+
+\[
+\mathbf{qq}_{BS\_CS} = (p, p(m-1)).
+\]
+
+For example,
+
+```r
+obj <- basis_BS_CS(p = 3, m = 4)
+
+obj$qq
+```
+
+returns
+
+```
+[1] 3 9
+```
+
+The first entry corresponds to the eigenspace generated by the constant direction within each block, while the second corresponds to the orthogonal contrast subspace of dimension \(m−1\), repeated across all \(p\) blocks.
+
+The corresponding basis matrix is
+
+\[
+\mathbf H=\left(\tfrac{1}{\sqrt{m}}(\mathbf I_p\otimes\mathbf 1_m):
+\mathbf I_p\otimes\widetilde{\mathbf Q}
+\right),
+\]
+
+where \(\widetilde{\mathbf Q}\) is an \(m\times m-1\) matrix representing any orthonormal basis of the subspace orthogonal to \(\mathbf 1_m\).
+
+Consequently, the first \(p\) columns of the resulting basis correspond to
+the common mean direction within each block, while the remaining
+\(p(m−1)\) columns span the within-block contrast spaces.
+
+**Statistical interpretation:** The `BS_CS` structure assumes that
+
+- all blocks have identical compound symmetry covariance matrices,
+- different blocks are mutually uncorrelated,
+- variables within a block have a common variance,
+- every pair of variables within a block has the same covariance.
+
+Consequently, variables measured within the same block are
+exchangeable—the covariance depends only on whether two observations
+coincide or not.
+
+> **Typical applications**
+>
+> - Repeated measurements in which all observations within a subject are
+    equally correlated.
+> - Clustered or longitudinal data under the exchangeability assumption.
+> - Balanced multilevel experiments where measurements within each group
+    have a common correlation.
+> - Educational or psychological studies in which responses within an
+    individual are assumed to be equally correlated.
+
+
+### Block sphericity with circular Toeplitz within-block structure (BS_CT)
+
+The `BS_CT` structure is obtained when the common within-block covariance
+matrix follows a circular Toeplitz structure,
+
+\[
+\boldsymbol{\Lambda} = \operatorname{Toep}(\tau_0,\tau_1,\tau_2,\tau_{\lfloor q/2\rfloor},
+\tau_{\lfloor q/2\rfloor-1},\ldots,\tau_2,\tau_1).
+\]
+
+Consequently,
+
+\[
+\boldsymbol{\Omega}
+=
+\mathbf I_p
+\otimes
+\operatorname{Toep}(\tau_0,\tau_1,\tau_2,\tau_{\lfloor q/2\rfloor},
+\tau_{\lfloor q/2\rfloor-1},\ldots,\tau_2,\tau_1).
+\]
+
+Different blocks are mutually uncorrelated and have the same circular
+Toeplitz covariance structure. Within each block, the covariance between two
+variables depends only on their circular distance.
+
+The spectral decomposition of the within-block circular Toeplitz matrix
+provides a common orthogonal basis \(\mathbf H_{CT,m}\). Hence,
+
+\[
+\mathbf H = \mathbf I_p\otimes\mathbf H_{CT,m}.
+\]
+
+The multiplicities of the resulting eigenvalues are obtained by multiplying
+the within-block multiplicities by \(p\). Thus, for odd \(m\),
+
+\[
+\mathbf{qq}_{BS\_CT} = (p, 2p, \ldots, 2p),
+\]
+
+whereas for even \(m\),
+
+\[
+\mathbf{qq}_{BS\_CT} = (p, 2p, \ldots, 2p, p).
+\]
+
+
+For example,
+
+```r
+obj <- basis_BS_CT(p = 3, m = 7)
+
+obj$qq
+```
+
+returns
+
+```
+[1] 3 6 6 6
+```
+
+while for an even within-block dimension,
+
+```r
+basis_BS_CT(p = 3, m = 6)$qq
+```
+
+returns
+
+```
+[1] 3 6 6 3
+```
+
+The basis matrix is
+
+\[
+\mathbf H
+=
+\mathbf I_p\otimes\mathbf H_{CT,m},
+\]
+
+where \(\mathbf H_{CT,m}\) is the circular Toeplitz basis described in the
+Circular Toeplitz subsection above. Thus, the same Fourier-type directions
+are used within every block.
+
+**Statistical interpretation:** The `BS_CT` structure assumes that
+
+- all \(m\)-dimensional blocks share the same circular Toeplitz covariance
+  structure,
+- different blocks are mutually uncorrelated,
+- within each block, the covariance between two variables depends only on
+  their circular distance.
+
+Consequently, the covariance structure within each block is invariant under
+cyclic permutations of the variables.
+
+> **Typical applications**
+>
+> - Periodic repeated measurements collected independently on several 
+    experimental units.
+> - Multichannel signals recorded independently on several sensors arranged
+    on a circle or ring.
+> - Directional or angular measurements obtained from independent subjects.
+> - Image and signal processing problems with periodic boundary conditions
+    within independent experimental units.
+
+
+
+## Block diagonality family
+
+The block diagonality family assumes that the \(pm\)-dimensional observation
+vector is partitioned into \(p\) subvectors (blocks) of dimension \(m\),
+
+\[
+\mathbf y =
+\left(
+\mathbf y_1^\top,\ldots,\mathbf y_p^\top
+\right)^\top,
+\qquad
+\mathbf y_i\in\mathbb R^m.
+\]
+
+The defining feature of block diagonality is that the covariance matrix is
+block diagonal. In contrast to block sphericity, the covariance structure
+may differ from one block to another. Thus, if the \(pm\)-dimensional
+observation vector is partitioned into \(p\) subvectors of dimension \(m\),
+the covariance matrix has the general form
+
+\[
+\boldsymbol{\Omega}
+=
+\left(
+\begin{smallmatrix}
+\boldsymbol{\Lambda}_1 & \mathbf 0_m & \cdots & \mathbf 0_m\\
+\mathbf 0_m & \boldsymbol{\Lambda}_2 & \cdots & \mathbf 0_m\\
+\vdots & \vdots & \ddots & \vdots\\
+\mathbf 0_m & \mathbf 0_m & \cdots & \boldsymbol{\Lambda}_p
+\end{smallmatrix}
+\right),
+\]
+
+where \(\boldsymbol{\Lambda}_i\) is the \(m\times m\) covariance matrix
+associated with the \(i\)-th block.
+
+Thus, different blocks are mutually uncorrelated, while each block may have
+its own covariance structure. The within-block structures considered in
+`TestCQS` determine the particular form of the matrices
+\(\boldsymbol{\Lambda}_1,\ldots,\boldsymbol{\Lambda}_p\).
+
+In the spectral construction used by `TestCQS`, each block is represented by
+its own eigenvalues and eigenspaces. Consequently, unlike block sphericity,
+the eigenvalues need not be repeated across blocks. The corresponding basis
+matrix is obtained by combining the eigenvector bases of the individual
+blocks,
+
+\[
+\mathbf H
+=
+\mathbf H_{D,p}\otimes\mathbf H_{\mathrm{within}} = \mathbf I_p\otimes\mathbf H_{\mathrm{within}}.
+\]
+
+The eigenvalue multiplicities are determined by the multiplicities of the
+within-block eigenvalues. In particular, each within-block eigenspace is
+replicated across the \(p\) blocks. Unlike block sphericity, however, the
+corresponding eigenvalues need not be equal across blocks.
+
+The three non-redundant members of the block diagonality family are
+
+| Structure | Within-block covariance structure | Generator |
+| :-------- | :------------------------------- | :-------- |
+| `BD_S`    | Sphericity                       | `basis_BD_S(p,m)` |
+| `BD_CS`   | Compound symmetry                | `basis_BD_CS(p,m)` |
+| `BD_CT`   | Circular Toeplitz                | `basis_BD_CT(p,m)` |
+
+The combination `BD_D` is not listed because it reduces to the ordinary
+multivariate diagonal structure `D`.
+
+The following subsections describe the three members of the block
+diagonality family in detail.
+
+### Block diagonality with sphericity within-block structure (BD_S)
+
+The `BD_S` structure is obtained when each block has a spherical covariance
+matrix, while the covariance matrices of different blocks are allowed to
+differ. Thus,
+
+\[
+\boldsymbol{\Omega}
+=
+\operatorname{diag}
+\left(
+\lambda_1\mathbf I_m,
+\lambda_2\mathbf I_m,
+\ldots,
+\lambda_p\mathbf I_m
+\right)
+=
+\left(\begin{smallmatrix}
+\lambda_1\mathbf I_m & \mathbf 0_m & \cdots & \mathbf 0_m\\
+\mathbf 0_m & \lambda_2\mathbf I_m & \cdots & \mathbf 0_m\\
+\vdots & \vdots & \ddots & \vdots\\
+\mathbf 0_m & \mathbf 0_m & \cdots & \lambda_p\mathbf I_m
+\end{smallmatrix}\right).
+\]
+
+Here \(\lambda_i\) represents the common variance of the \(m\) variables
+within the \(i\)-th block. Thus, variables within a given block are
+mutually uncorrelated and have the same variance, while the common variance
+may differ between blocks.
+
+From the spectral point of view, the covariance matrix can be written as
+
+\[
+\boldsymbol{\Omega}
+=
+\sum_{i=1}^{p}
+\lambda_i
+\left(
+\mathbf E_{ii}\otimes\mathbf I_m
+\right).
+\]
+
+Consequently, assuming that the \(p\) block-specific variances are distinct,
+the covariance matrix has \(p\) distinct eigenvalues, each with multiplicity
+\(m\). The multiplicity \(m\) reflects the fact that the same variance
+\(\lambda_i\) applies to all \(m\) variables within the \(i\)-th block.
+
+For example,
+
+```r
+obj <- basis_BD_S(p = 3, m = 4)
+
+obj$qq
+```
+
+returns
+
+```
+[1] 4 4 4
+```
+
+indicating that the covariance matrix has three distinct eigenvalues, each
+with multiplicity four.
+
+The corresponding basis matrix is
+
+\[
+\mathbf H = \mathbf H_{D,p}\otimes\mathbf H_{S,m} = \mathbf I_p\otimes\mathbf I_m = \mathbf I_{pm}.
+\]
+
+Although the resulting basis matrix is the identity, its columns are
+ordered according to the block-specific eigenvalues. Thus, the first
+\(m\) columns correspond to the first block and its eigenvalue
+\(\lambda_i\), the next\(m\) columns to the second block and \(\lambda_2\), and so on.
+
+**Statistical interpretation:** The `BD_S` structure assumes that
+
+- different blocks are mutually uncorrelated,
+- each block has its own variance,
+- variables within each block are uncorrelated,
+- all variables within a block have the same variance.
+
+Thus, every block is spherical, although the variance may differ from one
+block to another.
+
+> **Typical applications**
+>
+> - Independent groups of variables measured on different scales, where
+    each group is assumed to be isotropic.
+> - Multisensor experiments in which each sensor produces independent
+    isotropic measurement noise with a sensor-specific variance.
+> - Block-structured multivariate data in which the overall variability
+    differs across blocks, while variables within each block are exchangeable
+    only through a common variance.
+
+
+### Block diagonality with compound symmetry within-block structure (BD_CS)
+
+The `BD_CS` structure is obtained when each block has a compound symmetry
+covariance structure, while the covariance matrices of different blocks are
+allowed to differ. Thus,
+
+\[
+\boldsymbol{\Omega}
+=
+\operatorname{diag}
+\left(
+\boldsymbol{\Lambda}_1,
+\boldsymbol{\Lambda}_2,
+\ldots,
+\boldsymbol{\Lambda}_p
+\right) = 
+\left(
+\begin{smallmatrix}
+\boldsymbol{\Lambda}_1 & \mathbf 0_m & \cdots & \mathbf 0_m\\
+\mathbf 0_m & \boldsymbol{\Lambda}_2 & \cdots & \mathbf 0_m\\
+\vdots & \vdots & \ddots & \vdots\\
+\mathbf 0_m & \mathbf 0_m & \cdots & \boldsymbol{\Lambda}_p
+\end{smallmatrix}
+\right),
+\]
+
+where the covariance matrix of the \(i\)-th block is
+
+\[
+\boldsymbol{\Lambda}_i
+=
+\sigma_i^2(1-\rho_i)\mathbf I_m
++
+\sigma_i^2\rho_i\mathbf J_m,
+\qquad
+i=1,\ldots,p.
+\]
+
+Here, \(\sigma_i^2\) represents the common variance of the variables
+within the \(i\)-th block, while \(\rho_i\) represents their common
+pairwise correlation. Thus, variables within a block are exchangeable,
+whereas the covariance parameters may differ between blocks.
+
+Using the spectral representation of compound symmetry,
+
+\[
+\boldsymbol{\Omega}
+=
+\sum_{i=1}^{p}
+\left[
+\lambda_{i1}
+\left(
+\mathbf E_{ii}\otimes\mathbf P_{1_m}
+\right)
++
+\lambda_{i2}
+\left(
+\mathbf E_{ii}\otimes\mathbf Q_{1_m}
+\right)
+\right],
+\]
+
+where
+
+\[
+\lambda_{i1}
+=
+\sigma_i^2\left(1+(m-1)\rho_i\right),
+\qquad
+\lambda_{i2}
+=
+\sigma_i^2(1-\rho_i).
+\]
+
+Thus, each block contributes two eigenspaces:
+
+- the one-dimensional mean direction within the block, corresponding to
+  \(\lambda_{i,1}\);
+- the \((m-1)\)-dimensional contrast subspace orthogonal to the mean
+  direction, corresponding to \(\lambda_{i,2}\).
+
+Assuming that the resulting eigenvalues are distinct across blocks, the
+covariance matrix has \(2p\) distinct eigenvalues. Their multiplicities are
+
+\[
+(\underbrace{1,m-1}_{\text{Block 1}},
+\underbrace{1,m-1}_{\text{Block 2}},
+\ldots,
+\underbrace{1,m-1}_{\text{Block }p}).
+\]
+
+For example,
+
+```r
+obj <- basis_BD_CS(p = 3, m = 4)
+
+obj$qq
+```
+
+returns
+
+```
+[1] 1 3 1 3 1 3
+```
+
+showing that each of the three blocks contributes one one-dimensional
+eigenspace associated with the normalized constant vector and one
+three-dimensional contrast eigenspace.
+
+The corresponding basis matrix is
+
+\[
+\mathbf H
+=
+\mathbf H_{D,p}\otimes\mathbf H_{CS,m}= \mathbf I_{p}\otimes\mathbf H_{CS,m},
+\]
+
+where
+
+\[
+\mathbf H_{CS,m} = \left(\tfrac{1}{\sqrt{m}}\mathbf1_m:\widetilde{\mathbf Q}\right)
+\]
+
+is the compound symmetry basis described in the Compound symmetry
+subsection, and \(\widetilde{\mathbf Q}\) is \(m\times m-1\) matrix representing an orthonormal basis of the
+subspace orthogonal to \(\mathbf1_m\).
+
+**Statistical interpretation:** The `BD_CS` structure assumes that
+
+- different blocks are mutually uncorrelated,
+- each block has its own variance,
+- each block has its own common correlation,
+- variables within the same block are exchangeable.
+
+Unlike `BS_CS`, where all blocks share a common compound symmetry
+covariance matrix, `BD_CS` allows both the variance and the correlation to
+vary from block to block.
+
+> **Typical applications**
+>
+> - Longitudinal studies where repeated measurements are grouped into
+    independent outcomes, each exhibiting exchangeable dependence with its
+    own variability.
+> - Multivariate experiments in which different measurement modalities are
+    independent, but repeated observations within each modality have compound symmetry.
+> - Educational or psychological studies involving several independent
+    subscales, each characterized by its own variance and common within-subscale correlation.
+
+
+### Block diagonality with circular Toeplitz within-block structure (BD_CT)
+
+The `BD_CT` structure is obtained when each block has a circular Toeplitz
+covariance structure, while the covariance matrices of different blocks are
+allowed to differ. Thus,
+
+\[
+\boldsymbol{\Omega}
+=
+\operatorname{diag}
+\left(
+\boldsymbol{\Lambda}_1,
+\boldsymbol{\Lambda}_2,
+\ldots,
+\boldsymbol{\Lambda}_p
+\right) = 
+\left(
+\begin{smallmatrix}
+\boldsymbol{\Lambda}_1 & \mathbf 0_m & \cdots & \mathbf 0_m\\
+\mathbf 0_m & \boldsymbol{\Lambda}_2 & \cdots & \mathbf 0_m\\
+\vdots & \vdots & \ddots & \vdots\\
+\mathbf 0_m & \mathbf 0_m & \cdots & \boldsymbol{\Lambda}_p
+\end{smallmatrix}
+\right),
+\]
+
+where each \(\boldsymbol{\Lambda}_i\) is an \(m\times m\) circular Toeplitz
+covariance matrix
+
+\[
+\boldsymbol{\Lambda}_i
+=
+\operatorname{Toep}
+\left(
+\tau_{i,0},
+\tau_{i,1},
+\ldots,
+\tau_{i,\lfloor m/2\rfloor},
+\ldots,
+\tau_{i,1}
+\right).
+\]
+
+Thus, different blocks are mutually uncorrelated, while the covariance
+within each block follows a circular Toeplitz structure. The circular
+Toeplitz parameters may differ between blocks.
+
+From the spectral point of view, each block is diagonalized by the same
+circular Toeplitz basis \(\mathbf H_{CT,m}\). Consequently,
+
+\[
+\boldsymbol{\Lambda}_i
+=
+\sum_{j=1}^{\lfloor m/2\rfloor+1}
+\lambda_{i,j}\mathbf V_j,
+\]
+
+where the projection matrices \(\mathbf V_j\) are those appearing in the
+spectral decomposition of the ordinary circular Toeplitz covariance
+structure (see the *Circular Toeplitz* section).
+
+The complete covariance matrix can therefore be written as
+
+\[
+\boldsymbol{\Omega}
+=
+\sum_{i=1}^{p}
+\sum_{j=1}^{\lfloor m/2\rfloor+1}
+\lambda_{i,j}
+\left(
+\mathbf E_{ii}\otimes\mathbf V_j
+\right).
+\]
+
+This representation shows that each block contributes its own set of
+circular Toeplitz eigenvalues, while the corresponding within-block
+eigenspaces have the same Fourier-type basis across all blocks.
+
+Consequently, each block contributes
+\(\lfloor m/2\rfloor+1\) distinct eigenvalues, having the same
+multiplicity pattern as the ordinary circular Toeplitz structure.
+Therefore,
+
+- if \(m\) is odd, the multiplicities are
+
+\[
+(\underbrace{1,2,\ldots,2}_{\text{Block 1}},
+\underbrace{1,2,\ldots,2}_{\text{Block 2}},
+\ldots,
+\underbrace{1,2,\ldots,2}_{\text{Block }p}),
+\]
+
+- if \(m\) is even, the multiplicities are
+
+\[
+(\underbrace{1,2,\ldots,2,1}_{\text{Block 1}},
+\underbrace{1,2,\ldots,2,1}_{\text{Block 2}},
+\ldots,
+\underbrace{1,2,\ldots,2,1}_{\text{Block }p}).
+\]
+
+This reflects the fact that each block possesses its own circular
+Toeplitz covariance structure, while different blocks are mutually
+uncorrelated.
+
+For example, for an odd block dimension \(m=7\),
+
+```r
+obj <- basis_BD_CT(p = 3, m = 7)
+
+obj$qq
+```
+
+returns
+
+```
+[1] 1 2 2 2 1 2 2 2 1 2 2 2
+```
+
+whereas for even \(m=6\),
+
+```r
+basis_BD_CT(p = 3, m = 6)$qq
+```
+
+returns
+
+```
+[1] 1 2 2 1 1 2 2 1 1 2 2 1
+```
+
+Each block contributes one one-dimensional eigenspace corresponding to the
+normalized constant vector, several two-dimensional eigenspaces
+corresponding to the remaining circular frequencies, and, for even values
+of \(m\), one additional one-dimensional highest-frequency eigenspace.
+
+The corresponding basis matrix is
+
+\[
+\mathbf H
+=
+\mathbf H_{D,p}\otimes\mathbf H_{CT,m} = \mathbf I_p\otimes\mathbf H_{CT,m}.
+\]
+
+The basis \(\mathbf H_{CT,m}\) is the common circular Toeplitz eigenbasis
+described in the *Circular Toeplitz* subsection. Consequently, the same
+within-block eigenvectors are used for every block, although the associated
+eigenvalues may differ from block to block.
+
+The columns of the resulting basis matrix are ordered block by block.
+Within each block, the columns follow the ordering of \(\mathbf H_{CT,m}\),
+so that columns corresponding to the same
+within-block eigenvalue are consecutive.
+
+For example, when p=3 and m=7, the multiplicity structure is
+
+\[(1,2,2,2)\,|\,(1,2,2,2)\,∣\,(1,2,2,2,)\]
+
+where each group corresponds to one block.
+
+**Statistical interpretation:** The `BD_CT` structure assumes that
+
+- different blocks are mutually uncorrelated,
+- each block has its own circular Toeplitz covariance matrix,
+- within each block, covariance depends only on the circular distance
+  between variables,
+- the circular dependence pattern may differ from one block to another.
+
+Unlike `BS_CT`, where all blocks share a common circular Toeplitz
+covariance structure, `BD_CT` allows every block to have its own set of
+circular Toeplitz parameters.
+
+> **Typical applications**
+>
+> - Several independent periodic signals, each exhibiting its own cyclic
+    dependence structure.
+> - Multichannel recordings in which each channel consists of circularly
+    ordered measurements with channel-specific covariance parameters.
+> - Environmental or meteorological measurements collected over periodic
+    cycles for several independent locations.
+> - Image or signal processing problems involving independent periodic
+    components with different covariance characteristics.
+
+
+## Block compound symmetry family
+
+The block compound symmetry family assumes that the \(pm\)-dimensional observation
+vector is partitioned into \(p\) subvectors (blocks) of dimension \(m\),
+
+\[
+\mathbf y =
+\left(
+\mathbf y_1^\top,\ldots,\mathbf y_p^\top
+\right)^\top,
+\qquad
+\mathbf y_i\in\mathbb R^m.
+\]
+
+The defining feature of block compound symmetry is
+that the covariance structure between the blocks follows compound symmetry,
+while a separate covariance structure is specified within each block. The covariance matrix has the general form
+
+\[
+\boldsymbol{\Omega}
+= \mathbf I_p\otimes(\boldsymbol\Gamma_0-\boldsymbol\Gamma_1) + \mathbf J_p\otimes\boldsymbol\Gamma_1 = 
+\left(
+\begin{smallmatrix}
+\boldsymbol{\Gamma}_0 & \boldsymbol{\Gamma}_1 & \cdots & \boldsymbol{\Gamma}_1\\
+\boldsymbol{\Gamma}_1 & \boldsymbol{\Gamma}_0 & \cdots & \boldsymbol{\Gamma}_1\\
+\vdots & \vdots & \ddots & \vdots\\
+\boldsymbol{\Gamma}_1 & \boldsymbol{\Gamma}_1 & \cdots & \boldsymbol{\Gamma}_0
+\end{smallmatrix}
+\right),
+\]
+
+where \(m \times m\) diagonal blocks \(\boldsymbol{\Gamma}_0\) represent the covariance
+matrix of the \(m\) response variables within each of the \(p\) subvectors, and \(m \times m\) off-diagonal
+blocks \(\boldsymbol{\Gamma}_1\) represent the covariance matrix of the \(m\) response
+variables between any two subvectors.
+
+Thus, the subvectors are exchangeable, which means that the covariance matrix \(\boldsymbol\Omega\)
+remains unchanged under any permutation of the \(p\) subvectors.
+
+Equivalently, using the spectral representation of the compound symmetry
+structure between the blocks,
+
+\[
+\boldsymbol{\Omega} = \mathbf P_{1_p}\otimes\boldsymbol\Lambda_1 + \mathbf Q_{1_p}\otimes\boldsymbol\Lambda_2,
+\]
+
+where
+
+\[
+\boldsymbol\Lambda_1=\boldsymbol\Gamma_0 + (p-1)\boldsymbol\Gamma_1,\qquad \boldsymbol\Lambda_2=\boldsymbol\Gamma_0-\boldsymbol\Gamma_1.
+\]
+
+Here, \(\boldsymbol\Lambda_1\) is the within-block covariance matrix
+associated with the between-block mean direction spanned by
+\(\mathbf 1_p\), whereas \(\boldsymbol\Lambda_2\) is the within-block
+covariance matrix associated with the \((p-1)\)-dimensional subspace
+orthogonal to \(\mathbf 1_p\).
+
+In the spectral construction used by `TestCQS`, the basis matrix is obtained
+by combining the eigenvector basis for the between-block compound symmetry
+structure with the corresponding within-block basis. Thus,
+
+\[
+\mathbf H
+=
+\mathbf H_{CS,p}\otimes\mathbf H_{\mathrm{within}} = 
+\left(\tfrac{1}{\sqrt{p}}\mathbf 1_p\otimes\mathbf H_{\mathrm{within}} :
+\widetilde{\mathbf Q}\otimes\mathbf H_{\mathrm{within}}\right),
+\]
+
+where \(\widetilde{\mathbf Q}\) is a \(p\times p-1\) matrix representing any orthonormal
+basis of the subspace orthogonal to \(\mathbf 1_p\).
+Consequently, the between-block structure has two eigenspaces:
+
+- the one-dimensional subspace spanned by the constant vector
+  \(\mathbf 1_p\), corresponding to the within-block covariance matrix
+  \(\boldsymbol\Lambda_1\);
+- the \((p-1)\)-dimensional subspace orthogonal to \(\mathbf 1_p\),
+  corresponding to the within-block covariance matrix
+  \(\boldsymbol\Lambda_2\).
+
+The within-block covariance structure can independently be chosen as
+sphericity, diagonality, compound symmetry, or circular Toeplitz. This gives
+the four structures
+
+| Structure | Within-block covariance structure | Generator |
+| :-------- | :------------------------------- | :-------- |
+| `BCS_S`    | Sphericity                       | `basis_BCS_S(p,m)` |
+| `BCS_D`    | Diagonality                       | `basis_BCS_D(p,m)` |
+| `BCS_CS`   | Compound symmetry                | `basis_BCS_CS(p,m)` |
+| `BCS_CT`   | Circular Toeplitz                | `basis_BCS_CT(p,m)` |
+
+The following subsections describe the four members of the block
+compound symmetry family in detail.
+
+
+### Block compound symmetry with spherical within-block structure (BCS_S)
+
+The `BCS_S` structure is obtained when the within-block covariance
+matrices are spherical. Thus, the general block compound symmetry
+representation is specialized by taking
+
+\[
+\boldsymbol{\Gamma}_0=\sigma^2\mathbf I_m,
+\qquad
+\boldsymbol{\Gamma}_1=\sigma^2\rho\mathbf I_m.
+\]
+
+Consequently, the covariance matrix has the form
+
+\[
+\boldsymbol{\Omega}
+=
+\mathbf I_p\otimes
+\left[(\sigma^2(1-\rho)\mathbf I_m\right]
++
+\mathbf J_p\otimes
+\left(\sigma^2\rho\mathbf I_m\right).
+\]
+
+Thus, all variables within a block have the same variance, while the
+covariance between corresponding variables in two distinct blocks is the
+same. Since the within-block covariance matrices are proportional to the
+identity, variables corresponding to different positions within a block
+are uncorrelated.
+
+Using the spectral representation of compound symmetry, the covariance
+matrix can be written as
+
+\[
+\boldsymbol{\Omega}
+=
+\lambda_1
+\left(\mathbf P_{1_p}\otimes\mathbf I_m\right)
++
+\lambda_2
+\left(\mathbf Q_{1_p}\otimes\mathbf I_m\right),
+\]
+
+where
+
+\[
+\lambda_1
+=
+\sigma^2(1+(p-1)\rho),
+\qquad
+\lambda_2
+=
+\sigma^2(1-\rho).
+\]
+
+The first eigenvalue corresponds to the common direction across the
+\(p\) blocks, whereas the second corresponds to contrasts between blocks.
+Because the within-block covariance is spherical, both between-block
+eigenspaces are repeated identically over all \(m\) within-block
+directions.
+
+Consequently, the covariance matrix has two distinct eigenvalues, with
+multiplicities
+
+\[
+m
+\qquad\text{and}\qquad
+m(p-1),
+\]
+
+respectively.
+
+For example,
+
+```r
+obj <- basis_BCS_S(p = 3, m = 4)
+
+obj$qq
+```
+
+returns
+
+```r
+[1] 4 8
+```
+
+indicating that the first eigenvalue has multiplicity \(m=4\), while the
+second has multiplicity \(m(p−1) = 8\).
+
+The corresponding basis matrix is obtained as the Kronecker product of
+the compound symmetry basis for the p blocks and the identity basis
+for the \(m\)-dimensional within-block space:
+
+\[
+\mathbf H
+=
+\mathbf H_{CS,p}\otimes\mathbf H_{S,m} = \mathbf H_{CS,p}\otimes\mathbf I_m.
+\]
+
+In particular,
+
+\[
+\mathbf H = \left(\tfrac{1}{\sqrt{p}}\mathbf 1_p\otimes\mathbf I_m :
+\widetilde{\mathbf Q}\otimes\mathbf I_m\right),
+\]
+
+where \(\widetilde{\mathbf Q}\) is any orthonormal basis of the
+\((p−1)\)-dimensional subspace orthogonal to \(\mathbf 1_p\).
+
+The first \(m\) columns therefore span the eigenspace associated with
+\(\lambda_1\). They correspond to the common direction across blocks,
+with each of the m within-block coordinates contributing one
+orthogonal direction. The remaining \(m(p−1)\) columns span the eigenspace
+associated with \(\lambda_2\), representing contrasts between blocks
+for each within-block coordinate.
+
+The multiplicity vector returned by the package therefore agrees with
+the Kronecker-product construction,
+
+\[
+\mathbf{qq}_{BCS\_S} = \mathbf{qq}_{CS,p}\otimes \mathbf{qq}_{S,m} = (1,p-1)\otimes (m) = (m, m(p-1)).
+\]
+
+**Statistical interpretation:** The `BCS_S` structure assumes that
+
+- the \(p\) blocks are exchangeable;
+- the covariance structure between blocks follows compound symmetry;
+- all variables within a block have the same variance;
+- variables occupying different positions within a block are uncorrelated;
+- the within-block covariance structure is identical for all blocks.
+
+Thus, the model distinguishes only between variation that is common across
+the blocks and variation that represents contrasts between blocks. Within
+each of these two between-block components, all \(m\) within-block
+directions have the same variance.
+
+> **Typical applications**
+>
+> - Repeated multivariate measurements in which different occasions are
+    equally correlated, while variables recorded at each occasion are
+    independent with common variance.
+> - Clustered experiments where exchangeability is assumed between groups,
+    but measurements within each group are isotropic.
+> - Balanced experiments with exchangeable experimental units and
+    spherical within-unit covariance.
+> - Longitudinal studies in which dependence is driven primarily by the
+    correlation between measurement occasions rather than by the variables
+    observed within each occasion.
+
+
+### Block compound symmetry with diagonal within-block structure (BCS_D)
+
+The `BCS_D` structure is obtained when the within-block covariance
+matrices are diagonal. Thus, in the general block compound symmetry
+representation, we take
+
+\[
+\boldsymbol{\Omega} = \left(\sigma^2(1-\rho)\mathbf I_p + \sigma^2\rho\mathbf J_p\right)
+\otimes\operatorname{diag}(\delta_1,\ldots,\delta_m),
+\]
+
+or, equivalently,
+
+\[
+\boldsymbol{\Omega} = \sum_{i=1}^{m}\lambda_{i1}\left(\mathbf P_{1_p}\otimes\mathbf E_{ii}\right)
++ \sum_{i=1}^{m}\lambda_{i2}\left(\mathbf Q_{1_p}\otimes\mathbf E_{ii}\right),
+\]
+
+where
+
+\[
+\lambda_{i1} = \delta_i\sigma^2(1+(p-1)\rho),\qquad \lambda_{i2} = \delta_i\sigma^2(1-\rho).
+\]
+
+Consequently, the covariance matrix has \(2m\) distinct eigenvalues.
+Each within-block coordinate contributes one eigenvalue associated with
+the common block direction and one associated with the orthogonal block
+contrasts.
+
+This reflects the fact that every within-block variable has its own
+variance, while the dependence between blocks follows compound symmetry.
+
+For example,
+
+```r
+obj <- basis_BCS_D(p = 3, m = 4)
+
+obj$qq
+```
+
+returns
+
+```
+[1] 1 1 1 1 2 2 2 2
+```
+
+showing that the first four eigenspaces are one-dimensional and
+correspond to the common block direction, whereas the remaining four
+eigenspaces have multiplicity two and correspond to contrasts between
+blocks.
+
+The corresponding basis matrix is
+
+\[
+\mathbf H
+=
+\mathbf H_{CS,p}\otimes\mathbf H_{D,m} = \mathbf H_{CS,p}\otimes\mathbf I_m.
+\]
+
+More explicitly,
+
+\[
+\mathbf H = \left(\tfrac{1}{\sqrt{p}}\mathbf 1_p\otimes\mathbf I_m :
+\widetilde{\mathbf Q}\otimes\mathbf I_m\right),
+\]
+
+where \(\widetilde{\mathbf Q}\) is any orthonormal basis of the
+\((p−1)\)-dimensional subspace orthogonal to \(\mathbf 1_p\).
+
+The first \(m\) columns correspond to the common between-block directions,
+one for each within-block variable. Each of these eigenspaces is
+one-dimensional. The remaining \(m(p−1)\) columns correspond to
+between-block contrasts, with \(p−1\) orthogonal directions for each
+within-block variable.
+
+The multiplicity vector returned by the package is therefore consistent
+with the Kronecker-product construction,
+
+\[
+\mathbf{qq}_{BCS\_D} = \mathbf{qq}_{CS,p}\otimes \mathbf{qq}_{D,m} = (1,p-1)\otimes (1,\ldots,1),
+\]
+
+that is
+
+\[
+\mathbf{qq}_{BCS\_D} = (\underbrace{1,\ldots,1}_{m \text{ times}},
+\underbrace{p-1,\ldots,p-1}_{m\text{ times}}).
+\]
+
+
+**Statistical interpretation:** The `BCS_D` structure assumes that
+
+- the p blocks are exchangeable;
+- the covariance structure between blocks follows compound symmetry;
+- variables occupying different positions within a block are uncorrelated;
+- the variance of each within-block variable may differ from that of the other within-block variables;
+- the covariance between corresponding variables in different blocks may also depend on the within-block variable.
+
+Thus, the model allows different within-block variables to have different
+variability and different levels of between-block dependence, while
+retaining exchangeability of the blocks.
+
+> **Typical applications**
+>
+> - Repeated multivariate measurements in which different occasions are
+    equally correlated, while individual variables exhibit different variability.
+> - Longitudinal studies with exchangeable dependence between measurement
+    occasions and heterogeneous measurement variances.
+> - Balanced clustered designs with independent within-block variables
+    but exchangeable dependence between blocks.
+> - Multi-endpoint experiments where endpoints are independent within each
+    occasion but repeated observations remain equally correlated.
+
+
+### Block compound symmetry with compound symmetry within-block structure (BCS_CS)
+
+The `BCS_CS` structure is obtained when the within-block covariance
+matrices also follow compound symmetry. Thus, in the general block
+compound symmetry representation,
+
+\[
+\boldsymbol{\Gamma}_0
+=
+\sigma_0^2(1-\rho_0)\mathbf I_m
++
+\sigma_0^2\rho_0\mathbf J_m, \qquad
+\boldsymbol{\Gamma}_1
+=
+\sigma_1^2(1-\rho_1)\mathbf I_m
++
+\sigma_1^2\rho_1\mathbf J_m.
+\]
+
+The covariance matrix therefore has the form
+
+\[
+\begin{aligned}
+\boldsymbol{\Omega} &= (\sigma_0^2(1-\rho_0)-\sigma_1^2(1-\rho_1))\mathbf I_p\otimes\mathbf I_m
++ (\sigma_0^2\rho_0-\sigma_1^2\rho_1)\mathbf I_p\otimes\mathbf J_m + \\
+&\quad + \sigma_1^2(1-\rho_1)\mathbf J_p\otimes\mathbf I_m
++ \sigma_1^2\rho_1\mathbf J_p\otimes\mathbf J_m.
+\end{aligned}
+\]
+
+Equivalently, this can be written in the spectral form,
+
+\[
+\boldsymbol{\Omega} = \lambda_{11}(\mathbf P_{1,p}\otimes\mathbf P_{1,m})
++ \lambda_{12}(\mathbf P_{1,p}\otimes\mathbf Q_{1,m})
++ \lambda_{21}(\mathbf Q_{1,p}\otimes\mathbf P_{1,m})
++ \lambda_{22}(\mathbf Q_{1,p}\otimes\mathbf Q_{1,m}),
+\]
+
+where
+
+\[
+\begin{aligned}
+\lambda_{11} &= \sigma^2_0(1+(m-1)\rho_0)+(p-1)\sigma^2_1(1+(m-1)\rho_1), \\
+\lambda_{12} &= \sigma^2_0(1-\rho_0)+(p-1)\sigma^2_1(1-\rho_1), \\
+\lambda_{21} &= \sigma^2_0(1+(m-1)\rho_0)-\sigma^2_1(1+(m-1)\rho_1),\\
+\lambda_{22} &= \sigma^2_0(1-\rho_0)-\sigma^2_1(1-\rho_1).
+\end{aligned}
+\]
+
+
+
+Consequently, the covariance matrix has four distinct eigenspaces whose
+multiplicities are obtained by multiplying the multiplicities of the
+between-block and within-block compound symmetry structures,
+
+\[
+\bigl(1,\;m-1,\;p-1,\;(p-1)(m-1)\bigr).
+\]
+
+For example,
+
+```r
+obj <- basis_BCS_CS(p = 3, m = 4)
+
+obj$qq
+```
+
+returns
+
+```
+[1] 1 3 2 6
+```
+
+indicating that the four eigenspaces have dimensions
+
+\[
+1,\quad m-1=3,\quad p-1=2,\quad (p-1)(m-1)=6.
+\]
+
+The four eigenspaces have a natural interpretation. The first corresponds
+to the direction that is constant both across blocks and within each
+block. The second represents within-block contrasts that are common
+across blocks. The third represents contrasts between blocks in the
+within-block mean direction. Finally, the fourth combines contrasts
+between blocks with within-block contrasts.
+
+The corresponding basis matrix is
+
+\[
+\mathbf H = \mathbf H_{CS,p} \otimes \mathbf H_{CS,m} = \left(\tfrac{1}{\sqrt{p}}\mathbf 1_p :
+\widetilde{\mathbf Q}_p\right)\otimes \left(\tfrac{1}{\sqrt{m}}\mathbf 1_m :
+\widetilde{\mathbf Q}_m\right),
+\]
+
+where \(\widetilde{\mathbf Q}_p\) and \(\widetilde{\mathbf Q}_m\) are
+orthonormal bases of the subspaces orthogonal to \(\mathbf 1_p\) and \(\mathbf 1_m\), respectively.
+
+The Kronecker-product construction gives
+
+\[
+\mathbf{qq}_{BCS\_CS} = \mathbf{qq}_{CS,p}\otimes \mathbf{qq}_{CS,m} = (1,p-1)\otimes (1,m-1),
+\]
+
+which yields
+
+\[
+(1, m-1, p-1, (p-1)(m-1)).
+\]
+
+
+**Statistical interpretation:** The `BCS_CS` structure assumes that
+
+- the p blocks are exchangeable;
+- the covariance structure between blocks follows compound symmetry;
+- variables within each block have a common variance;
+- every pair of distinct variables within a block has the same covariance;
+- the within-block compound symmetry structure is identical across blocks.
+
+Thus, both dimensions of the doubly multivariate observation are treated
+symmetrically. The model distinguishes between common and contrast
+directions at the block level and, independently, between common and
+contrast directions within each block.
+
+From the spectral point of view, this produces four natural components:
+the overall common direction, within-block contrasts shared across
+blocks, between-block contrasts in the common within-block direction,
+and simultaneous between-block and within-block contrasts.
+
+> **Typical applications**
+>
+> - Balanced longitudinal studies in which repeated observations are
+    equally correlated over time and several outcomes are themselves exchangeable.
+> - Clustered multivariate experiments where clusters are exchangeable and
+    measurements within each cluster are also exchangeable.
+> - Balanced clustered designs in which both the blocks and the variables
+    within each block are treated as exchangeable.
+> - Educational or psychological studies with several exchangeable groups
+    of exchangeable measurements.
+> - Repeated multivariate measurements where both the dependence between
+    occasions and the dependence among variables within each occasion are
+    adequately described by compound symmetry.
+
+### Block compound symmetry with circular Toeplitz within-block structure (BCS_CT)
+
+The `BCS_CT` structure is obtained when the within-block covariance
+matrices follow the circular Toeplitz (CT) structure. Thus, in the general
+block compound symmetry representation,
+
+\[
+\boldsymbol{\Omega}
+=
+\mathbf I_p\otimes(\boldsymbol{\Gamma}_0-\boldsymbol{\Gamma}_1)
++
+\mathbf J_p\otimes\boldsymbol{\Gamma}_1,
+\]
+
+where both \(\boldsymbol{\Gamma}_0\) and \(\boldsymbol{\Gamma}_1\) are
+\(m\times m\) circular Toeplitz matrices. More precisely,
+
+\[
+\boldsymbol{\Gamma}_i
+=
+\operatorname{Toep}
+(\tau_{i0},\tau_{i1},\ldots,\tau_{i,\lfloor m/2\rfloor},
+\ldots,\tau_{i1}), \qquad i=0,1,
+\]
+
+where \(\boldsymbol{\Gamma}_0\) describes the covariance structure within each block, whereas \(\boldsymbol{\Gamma}_1\) describes the covariance structure between any two distinct blocks.
+
+Thus, the blocks are exchangeable, as in the general block compound
+symmetry family, while the covariance within and between blocks depends
+on the circular distance between the corresponding within-block
+variables.
+
+Using the spectral representation of the block compound symmetry
+structure,
+
+\[
+\boldsymbol{\Omega}
+=
+\mathbf P_{1_p}\otimes\boldsymbol{\Lambda}_1
++
+\mathbf Q_{1_p}\otimes\boldsymbol{\Lambda}_2,
+\]
+
+where
+
+\[
+\boldsymbol{\Lambda}_1
+=
+\boldsymbol{\Gamma}_0+(p-1)\boldsymbol{\Gamma}_1,
+\qquad
+\boldsymbol{\Lambda}_2
+=
+\boldsymbol{\Gamma}_0-\boldsymbol{\Gamma}_1.
+\]
+
+Since linear combinations of circular Toeplitz matrices are again
+circular Toeplitz, both \(\boldsymbol{\Lambda}_1\) and
+\(\boldsymbol{\Lambda}_2\) are circular Toeplitz matrices of dimension
+\(m\). Consequently, they are simultaneously diagonalized by the common
+circular Toeplitz basis \(\mathbf H_{CT,m}\).
+
+The resulting basis matrix is therefore the Kronecker product
+
+\[
+\mathbf H
+=
+\mathbf H_{CS,p}\otimes\mathbf H_{CT,m}.
+\]
+
+Thus, the first factor describes the two eigenspaces induced by compound
+symmetry between the blocks, while the second factor describes the
+eigenspaces induced by the circular Toeplitz structure within the blocks.
+
+The block compound symmetry structure contributes the two between-block
+eigenspaces
+
+- the one-dimensional space spanned by \(\mathbf 1_p\), corresponding to
+  the common direction across blocks;
+- the \((p-1)\)-dimensional space orthogonal to \(\mathbf 1_p\),
+  corresponding to contrasts between blocks.
+
+The circular Toeplitz structure within each block contributes
+\(\lfloor m/2\rfloor+1\) distinct eigenspaces. For odd \(m\), their
+multiplicities are
+
+\[
+(1,\underbrace{2,\ldots,2}_{(m-1)/2}),
+\]
+
+whereas for even \(m\) they are
+
+\[
+(1,\underbrace{2,\ldots,2}_{m/2-1},1).
+\]
+
+Consequently, the multiplicity vector of the `BCS_CT` structure is
+
+\[
+\operatorname{qq}_{BCS\_CT}
+=
+(1,p-1)\otimes\operatorname{qq}_{CT,m}.
+\]
+
+For example, for \(p=3\) and \(m=7\),
+
+```r
+obj <- basis_BCS_CT(p = 3, m = 7)
+
+obj$qq
+```
+
+returns
+
+```r
+[1] 1 2 2 2 2 4 4 4
+```
+
+since
+
+\[
+\operatorname{qq}_{CT,7}
+=
+(1,2,2,2),
+\]
+
+and hence
+
+\[
+(1, 2)\otimes(1,2,2,2) = (1,2,2,2,2,4,4,4).
+\]
+
+More generally, the first group of eigenspaces corresponds to the common direction across blocks, while the second group corresponds to between-block contrasts. Within each of these groups, the eigenspaces are further decomposed according to the circular Fourier-type eigenvectors within each block.
+
+**Statistical interpretation:** The BCS_CT structure combines
+exchangeability of the blocks with periodic dependence within each block. Specifically,
+
+- the \(p\) blocks are exchangeable;
+- the covariance structure between blocks is the same for every pair of distinct blocks;
+- within each block, the covariance depends only on the circular
+distance between variables;
+- the between-block covariance also follows a circular Toeplitz
+structure with respect to the within-block variables.
+
+Thus, variables occupying corresponding positions in different blocks have the same between-block covariance, while within each block, variables separated by the same circular lag have the same covariance.
+
+From the spectral point of view, the structure combines the
+two-dimensional decomposition induced by block compound symmetry with the Fourier-type decomposition induced by circular Toeplitz structure. This gives a particularly natural representation for data possessing both exchangeable blocks and periodic structure within the blocks.
+
+> **Typical applications**
+>
+> - Repeated periodic measurements collected for several exchangeable subjects or experimental units.
+> - Measurements over a cycle, such as hours of the day, days of the week, or months of the year, observed for several exchangeable groups.
+> - Multisite or multilevel studies in which the measurement occasions have a natural circular ordering.
+> - Periodic signals observed for several exchangeable experimental units, where both within-unit and between-unit covariance depend on circular lag.
+> - Spatial or directional measurements collected for several
+exchangeable locations or units.
+
+## Block circular Toeplitz family
+
+The block circular Toeplitz family assumes that the \(pm\)-dimensional
+observation vector is partitioned into \(p\) subvectors (blocks) of
+dimension \(m\),
+
+\[
+\mathbf y =
+\left(
+\mathbf y_1^\top,\ldots,\mathbf y_p^\top
+\right)^\top,
+\qquad
+\mathbf y_i\in\mathbb R^m.
+\]
+
+The defining feature of block circular Toeplitz structure is that the
+covariance structure between the blocks follows a circular Toeplitz
+pattern. Thus, the covariance between two blocks depends only on their
+circular distance. In contrast to block compound symmetry, different
+circular distances may have different covariance matrices.
+
+Let
+
+\[
+\boldsymbol{\Gamma}_0,\boldsymbol{\Gamma}_1,\ldots,
+\boldsymbol{\Gamma}_{\lfloor p/2\rfloor}
+\]
+
+denote \(m\times m\) covariance matrices associated with the different circular distances between blocks. The covariance matrix then has the block-circular-Toeplitz form
+
+\[
+\boldsymbol{\Omega}
+=
+\operatorname{Toep}_{\mathrm{circ}}
+\left(
+\boldsymbol{\Gamma}_0,
+\boldsymbol{\Gamma}_1,\ldots,
+\boldsymbol{\Gamma}_{\lfloor p/2\rfloor},
+\ldots,
+\boldsymbol{\Gamma}_1
+\right).
+\]
+
+Equivalently, it can be written as
+
+\[
+\boldsymbol{\Omega}
+=
+\sum_{k=0}^{\lfloor p/2\rfloor}
+\mathbf{SC}(p,k)\otimes\boldsymbol{\Gamma}_k,
+\]
+
+where \(\mathbf{SC}(p,k)\) is the symmetric circular matrix of order \(p\) having ones at circular distance \(k\).
+
+Thus, the covariance matrix has the block form
+
+\[
+\boldsymbol{\Omega}
+=
+\left(
+\begin{smallmatrix}
+\boldsymbol{\Gamma}_0 &
+\boldsymbol{\Gamma}_1 &
+\boldsymbol{\Gamma}_2 &
+\cdots &
+\boldsymbol{\Gamma}_1\\
+\boldsymbol{\Gamma}_1 &
+\boldsymbol{\Gamma}_0 &
+\boldsymbol{\Gamma}_1 &
+\cdots &
+\boldsymbol{\Gamma}_2\\
+\boldsymbol{\Gamma}_2 &
+\boldsymbol{\Gamma}_1 &
+\boldsymbol{\Gamma}_0 &
+\cdots &
+\boldsymbol{\Gamma}_3\\
+\vdots &
+\vdots &
+\vdots &
+\ddots &
+\vdots\\
+\boldsymbol{\Gamma}_1 &
+\boldsymbol{\Gamma}_2 &
+\boldsymbol{\Gamma}_3 &
+\cdots &
+\boldsymbol{\Gamma}_0
+\end{smallmatrix}
+\right),
+\]
+
+with the exact pattern determined by the circular distances between the blocks.
+
+Consequently, the blocks are stationary with respect to cyclic
+permutations: shifting all block indices by the same amount does not change the covariance matrix. In particular, the covariance between two blocks depends only on their circular separation and not on their absolute positions.
+
+The spectral representation is especially useful for the block circular Toeplitz family. Let
+
+\[
+\mathbf H_{CT,p}
+\]
+
+denote the common orthonormal eigenbasis for \(p\times p\) circular Toeplitz matrices, as described in the *Circular Toeplitz* section. Let \(\mathbf V_i^{(p)}\) denote the projection matrices onto the corresponding eigenspaces. Then
+
+\[
+\boldsymbol{\Omega}
+=
+\sum_{i=1}^{\lfloor p/2\rfloor+1}
+\mathbf V_i^{(p)}\otimes\boldsymbol{\Lambda}_i,
+\]
+
+where the matrices \(\boldsymbol{\Lambda}_i\) are linear combinations of the within-block covariance matrices,
+
+\[
+\boldsymbol{\Lambda}_i
+=
+\boldsymbol{\Gamma}_0
++
+2\sum_{k=1}^{\lfloor (p-1)/2\rfloor}
+\boldsymbol{\Gamma}_k
+\cos\left(\frac{2\pi ik}{p}\right)
++
+\begin{cases}
+(-1)^i\boldsymbol{\Gamma}_{p/2}, & p\ \text{even},\\
+0, & p\ \text{odd}.
+\end{cases}
+\]
+
+The precise indexing of the eigenvalues follows the ordering of the basis returned by `basis_CT(p)`.
+
+The construction used by `TestCQS` exploits the fact that the matrices \(\boldsymbol{\Lambda}_i\) inherit the same within-block covariance structure whenever all matrices
+\(\boldsymbol{\Gamma}_k\) belong to the same covariance family. Hence, the block and within-block decompositions can again be combined through a Kronecker product.
+
+The four block circular Toeplitz structures implemented in the package are
+
+| Structure | Within-block covariance structure | Generator |
+| :-------- | :-------------------------------- | :-------- |
+| `BCT_S`   | Sphericity                       | `basis_BCT_S(p,m)`  |
+| `BCT_D`   | Diagonality                      | `basis_BCT_D(p,m)`  |
+| `BCT_CS`  | Compound symmetry                | `basis_BCT_CS(p,m)` |
+| `BCT_CT`  | Circular Toeplitz                | `basis_BCT_CT(p,m)` |
+
+The corresponding basis matrices are obtained by combining the
+block-level circular Toeplitz basis with the appropriate within-block basis,
+
+\[
+\mathbf H
+=
+\mathbf H_{CT,p}\otimes\mathbf H_{\mathrm{within}}.
+\]
+
+Thus,
+
+\[
+\begin{aligned}
+\mathbf H_{BCT\_S}
+  &= \mathbf H_{CT,p}\otimes\mathbf H_{S,m},\\
+\mathbf H_{BCT\_D}
+  &= \mathbf H_{CT,p}\otimes\mathbf H_{D,m},\\
+\mathbf H_{BCT\_CS}
+  &= \mathbf H_{CT,p}\otimes\mathbf H_{CS,m},\\
+\mathbf H_{BCT\_CT}
+  &= \mathbf H_{CT,p}\otimes\mathbf H_{CT,m}.
+\end{aligned}
+\]
+
+The eigenvalue multiplicity vectors follow the same Kronecker-product principle. If \(\operatorname{qq}_{CT,p}\) denotes the multiplicity vector of the block circular Toeplitz structure and \(\operatorname{qq}_{W,m}\) the multiplicity vector of the selected within-block structure, then
+
+\[
+\operatorname{qq}_{BCT\_W}
+=
+\operatorname{qq}_{CT,p}\otimes
+\operatorname{qq}_{W,m},
+\]
+
+for \(W\in\{S,D,CS,CT\}\).
+
+For example, if \(p=7\), then
+
+\[
+\operatorname{qq}_{CT,7}=(1,2,2,2),
+\]
+
+so for a circular Toeplitz structure with compound symmetry within each block,
+
+\[
+\operatorname{qq}_{BCT\_CS}
+=
+(1,2,2,2)\otimes(1,m-1).
+\]
+
+This decomposition shows explicitly how the spectral structure is built in the two dimensions: the first factor describes the periodic relationship between blocks, while the second describes the covariance structure within each block.
+
+The following subsections describe the four members of the block
+circular Toeplitz family in detail.
+
+
+### Block circular Toeplitz with spherical within-block structure (BCT_S)
+
+The `BCT_S` structure is obtained when the within-block covariance
+matrices are spherical. Thus,
+
+\[
+\boldsymbol{\Gamma}_k=\tau_k\mathbf I_m,
+\qquad
+k=0,\ldots,\left\lfloor\frac p2\right\rfloor,
+\]
+
+where the coefficients \(\tau_k\) determine the circular Toeplitz covariance structure between the \(p\) blocks.
+
+Consequently,
+
+\[
+\boldsymbol{\Omega}
+=
+\sum_{k=0}^{\lfloor p/2\rfloor}
+\tau_k\,\mathbf{SC}(p,k)\otimes\mathbf I_m,
+\]
+
+or, equivalently,
+
+\[
+\boldsymbol{\Omega}
+=
+\sum_{i=1}^{\lfloor p/2\rfloor+1}
+\lambda_i
+\left(\mathbf V_i\otimes\mathbf I_m\right),
+\]
+
+where \(\mathbf V_i\) are the block-level circular Toeplitz projection matrices and \(\lambda_i\) are the corresponding eigenvalues.
+
+Since the within-block covariance is spherical, every block-level eigenvalue is repeated over all \(m\) within-block directions. Consequently,
+
+\[
+\operatorname{qq}_{BCT\_S}
+=
+\operatorname{qq}_{CT,p}\otimes(m).
+\]
+
+For example,
+
+```r
+obj <- basis_BCT_S(p = 7, m = 4)
+
+obj$qq
+```
+
+returns
+
+```text
+[1] 4 8 8 8
+```
+
+because
+
+\[
+(1,2,2,2)\otimes(4)
+=
+(4,8,8,8).
+\]
+
+The corresponding basis matrix is
+
+\[
+\mathbf H
+=
+\mathbf H_{CT,p}\otimes\mathbf H_{S,m}
+=
+\mathbf H_{CT,p}\otimes\mathbf I_m.
+\]
+
+Thus, the circular Fourier-type eigenvectors describe the periodic relationship between the blocks, while the spherical within-block structure contributes \(m\) identical orthogonal directions.
+
+**Statistical interpretation:** The `BCT_S` structure assumes that
+
+- the covariance between blocks depends only on their circular distance,
+- all variables within a block have the same variance,
+- variables occupying different positions within a block are uncorrelated.
+
+> **Typical applications**
+>
+> - Periodic or cyclic blocks with independent within-block variables.
+> - Measurements collected over a circular sequence of exchangeable variables.
+> - Spatio-temporal or directional studies exhibiting periodic dependence between blocks.
+
+### Block circular Toeplitz with diagonal within-block structure (BCT_D)
+
+The `BCT_D` structure is obtained when the within-block covariance
+matrices are diagonal. Thus,
+
+\[
+\boldsymbol{\Gamma}_k
+=
+\operatorname{diag}
+\left(
+\tau_{k,1},\ldots,\tau_{k,m}
+\right),
+\qquad
+k=0,\ldots,\left\lfloor\frac p2\right\rfloor.
+\]
+
+Consequently, variables within each block are mutually uncorrelated,
+while the covariance between corresponding variables in different blocks
+follows a circular Toeplitz structure.
+
+The covariance matrix can therefore be written as
+
+\[
+\boldsymbol{\Omega}
+=
+\sum_{k=0}^{\lfloor p/2\rfloor}
+\mathbf{SC}(p,k)\otimes
+\operatorname{diag}
+\left(
+\tau_{k,1},\ldots,\tau_{k,m}
+\right).
+\]
+
+Equivalently, the covariance structure can be viewed as \(m\) circular
+Toeplitz structures, one for each within-block variable. In the spectral
+representation,
+
+\[
+\boldsymbol{\Omega}
+=
+\sum_{i=1}^{\lfloor p/2\rfloor+1}
+\sum_{j=1}^{m}
+\lambda_{ij}
+\left(
+\mathbf V_i\otimes\mathbf E_{jj}
+\right),
+\]
+
+where \(\mathbf V_i\) are the block-level circular Toeplitz projection
+matrices and \(\mathbf E_{jj}\) is the projection onto the \(j\)-th
+within-block coordinate.
+
+Assuming distinct eigenvalues where appropriate, each block-level
+eigenspace is replicated for each of the \(m\) within-block coordinates.
+Hence,
+
+\[
+\operatorname{qq}_{BCT\_D}
+=
+\operatorname{qq}_{CT,p}\otimes
+\underbrace{(1,\ldots,1)}_{m}.
+\]
+
+For example,
+
+```r
+obj <- basis_BCT_D(p = 7, m = 4)
+
+obj$qq
+```
+
+returns
+
+```text
+[1] 1 1 1 1 2 2 2 2 2 2 2 2
+```
+
+because
+
+\[
+(1,2,2,2)\otimes(1,1,1,1)
+=
+(1,1,1,1,2,2,2,2,2,2,2,2).
+\]
+
+The corresponding basis matrix is
+
+\[
+\mathbf H
+=
+\mathbf H_{CT,p}\otimes\mathbf H_{D,m}
+=
+\mathbf H_{CT,p}\otimes\mathbf I_m.
+\]
+
+Thus, the same circular Toeplitz basis is used for the block dimension,
+while the identity basis is used for the within-block dimension.
+
+**Statistical interpretation:** The `BCT_D` structure assumes that
+
+- the covariance between blocks depends only on their circular distance,
+- variables within a block are mutually uncorrelated,
+- each within-block variable may have its own variance and its own
+  circular dependence pattern across blocks.
+
+Thus, variables occupying different positions within a block are
+uncorrelated, but each position may exhibit a different circular
+Toeplitz covariance structure across the blocks.
+
+> **Typical applications**
+>
+> - Periodic measurements of several distinct variables observed across a circular sequence of locations or time points.
+> - Multivariate signals with periodic dependence across blocks and negligible within-block correlations.
+> - Cyclic spatial or directional measurements where different variables may have different periodic covariance patterns.
+
+
+### Block circular Toeplitz with compound symmetry within-block structure (BCT_CS)
+
+The `BCT_CS` structure is obtained when the within-block covariance
+matrices have compound symmetry. Thus, for each circular block distance
+\(k\),
+
+\[
+\boldsymbol{\Gamma}_k
+=
+\sigma^2_k(1-\rho_k)\mathbf I_m+\sigma^2_k\rho_k\mathbf J_m,
+\qquad
+k=0,\ldots,\left\lfloor\frac p2\right\rfloor.
+\]
+
+Consequently, variables within a block have a common variance and every
+pair of distinct within-block variables has the same covariance, while
+the corresponding covariance parameters may vary with the circular
+distance between blocks.
+
+The covariance matrix can be written as
+
+\[
+\boldsymbol{\Omega}
+=
+\sum_{k=0}^{\lfloor p/2\rfloor}
+\mathbf{SC}(p,k)\otimes
+\boldsymbol{\Gamma}_k.
+\]
+
+Since every \(\boldsymbol{\Gamma}_k\) has the same compound symmetry
+eigenspaces, the spectral decomposition separates naturally into the
+block circular Toeplitz and within-block compound symmetry components.
+
+The corresponding basis matrix is
+
+\[
+\mathbf H
+=
+\mathbf H_{CT,p}\otimes\mathbf H_{CS,m},
+\]
+
+where \(\mathbf H_{CT,p}\) is the common circular Toeplitz basis for the
+block dimension and \(\mathbf H_{CS,m}\) is the compound symmetry basis
+for the within-block dimension.
+
+The eigenvalue multiplicity vector is therefore obtained from the
+Kronecker product
+
+\[
+\operatorname{qq}_{BCT\_CS}
+=
+\operatorname{qq}_{CT,p}\otimes
+\operatorname{qq}_{CS,m}.
+\]
+
+For example, if \(p=7\) and \(m=4\),
+
+```r
+obj <- basis_BCT_CS(p = 7, m = 4)
+
+obj$qq
+```
+
+returns
+
+```r
+[1] 1 3 2 6 2 6 2 6
+```
+
+because
+
+\[
+(1,2,2,2)\otimes(1,3)
+=
+(1,3,2,6,2,6,2,6).
+\]
+
+The first component of each pair of multiplicities corresponds to the
+one-dimensional mean direction within a block, while the second
+corresponds to the \((m−1)\)-dimensional contrast subspace.
+
+Thus, the spectral decomposition reflects two distinct sources of
+variation: the circular dependence between blocks and the compound
+symmetry decomposition within each block.
+
+**Statistical interpretation:** The `BCT_CS` structure assumes that
+
+- the covariance between blocks depends only on their circular distance;
+- variables within a block have a common variance;
+- every pair of distinct variables within a block has the same covariance;
+- the strength of the circular dependence may differ between different block distances;
+
+> **Typical applications**
+>
+> -Periodic or cyclic repeated-measures data with exchangeable variables within each block.
+> - Multivariate measurements collected at locations arranged on a circle, with homogeneous within-location dependence.
+> -Periodic clustered data in which dependence between blocks is governed by their circular separation.
+
+
+### Block circular Toeplitz with circular Toeplitz within-block structure (BCT_CT)
+
+The `BCT_CT` structure is obtained when the covariance structure within
+each block is itself circular Toeplitz. Thus, both the between-block and
+within-block dimensions have a circular Toeplitz covariance structure.
+
+The covariance matrix can be written as
+
+\[
+\boldsymbol{\Omega}
+=
+\sum_{k=0}^{\lfloor p/2\rfloor}
+\mathbf{SC}(p,k)\otimes\boldsymbol{\Gamma}_k,
+\]
+
+where each \(m\times m\) matrix \(\boldsymbol{\Gamma}_k\) is a circular
+Toeplitz covariance matrix. Equivalently, the covariance between two
+\(m\)-dimensional blocks depends on their circular distance, while within
+each block the covariance between variables depends on their circular
+distance as well.
+
+The spectral representation therefore separates the two circular
+Toeplitz dimensions. The corresponding basis matrix is
+
+\[
+\mathbf H
+=
+\mathbf H_{CT,p}\otimes\mathbf H_{CT,m},
+\]
+
+where \(\mathbf H_{CT,p}\) and \(\mathbf H_{CT,m}\) are the common
+orthonormal circular Toeplitz bases for the block and within-block
+dimensions, respectively.
+
+The eigenvalue multiplicity vector follows the same construction
+principle,
+
+\[
+\operatorname{qq}_{BCT\_CT}
+=
+\operatorname{qq}_{CT,p}\otimes
+\operatorname{qq}_{CT,m}.
+\]
+
+For example, for \(p=7\) and \(m=6\),
+
+```r
+obj <- basis_BCT_CT(p = 7, m = 6)
+
+obj$qq
+```
+
+returns
+
+```r
+[1] 1 2 2 1 2 4 4 2 2 4 4 2 2 4 4 2
+
+```
+
+because
+
+\[
+(1,2,2,2)\otimes(1,2,2,1)
+=
+(1,2,2,1,2,4,4,2,2,4,4,2,2,4,4,2).
+\]
+
+Thus, the multiplicities reflect the interaction of the eigenspace
+multiplicities in the two circular Toeplitz dimensions. In particular,
+multiplicities greater than two arise when a multiple eigenspace in the
+block dimension is combined with a multiple eigenspace in the
+within-block dimension.
+
+The basis matrix returned by `basis_BCT_CT()` consequently combines the
+two Fourier-type bases through the Kronecker product. This provides a
+common orthonormal eigenbasis for the entire `BCT_CT` family: changing
+the covariance parameters changes the eigenvalues, while the basis
+matrix remains unchanged for fixed \(p\) and \(m\).
+
+**Statistical interpretation:** The `BCT_CT` structure assumes that
+
+- the covariance between blocks depends only on their circular distance;
+- the covariance between variables within a block depends only on their circular distance;
+- the same within-block circular covariance structure is used throughout the block dimension.
+
+Thus, the model is periodic in both dimensions. The first circular
+dimension describes the dependence between blocks, while the second
+describes the dependence among variables within each block.
+
+> **Typical applications**
+>
+> - Periodic or cyclic measurements observed for several variables at each circular location or time point.
+> - Two-dimensional periodic data, such as measurements indexed by two cyclic coordinates.
+> - Spatial or directional data with periodic structure both between locations and within measurement profiles.
+> - Image and signal-processing problems with periodic boundary conditions in two dimensions.
+
+
+
+# Uniform block structure
+
+The uniform block structure (UBS) is a more general covariance structure than the doubly multivariate structures considered above. Unlike the doubly multivariate structures, the general UBS structure does not require equal block sizes and does not arise from a simple Kronecker-product construction. It is therefore treated separately in `TestCQS`. The package provides the corresponding basis construction for UBS structure that satisfy the required CQS conditions.
+
+Let
+
+\[
+m_1,\ldots,m_p
+\]
+
+denote the dimensions of the \(p\) blocks, and let \(m=\sum_{i=1}^p m_i\) be the total dimension of the observation vector.
+
+The defining feature of the uniform block structure is that each diagonal block has a compound symmetry structure, while every off-diagonal block is a constant multiple of an all-ones matrix. Thus, writing
+
+\[
+\boldsymbol{\Omega}_{UBS}
+=
+\{\mathbf U_{ij}\}_{i,j=1}^p,
+\]
+
+where \(\mathbf U_{ij}\) is of dimension \(m_i\times m_j\), we have
+
+\[
+\mathbf U_{ij}
+=
+\begin{cases}
+(d_i+(m_i-1)b_{ii})\mathbf P_{1_{m_i}}
++(d_i-b_{ii})\mathbf Q_{1_{m_i}},
+& i=j,\\[4pt]
+b_{ij}\mathbf J_{m_i\times m_j},
+& i\ne j.
+\end{cases}
+\]
+
+Equivalently,
+
+\[
+\boldsymbol{\Omega}_{UBS}
+=
+\left(
+\begin{smallmatrix}
+\mathbf{CS}_1 &
+b_{12}\mathbf J_{m_1\times m_2} &
+\cdots &
+b_{1p}\mathbf J_{m_1\times m_p}\\
+b_{21}\mathbf J_{m_2\times m_1} &
+\mathbf{CS}_2 &
+\cdots &
+b_{2p}\mathbf J_{m_2\times m_p}\\
+\vdots & \vdots & \ddots & \vdots\\
+b_{p1}\mathbf J_{m_p\times m_1} &
+b_{p2}\mathbf J_{m_p\times m_2} &
+\cdots &
+\mathbf{CS}_p
+\end{smallmatrix}
+\right),
+\]
+
+where
+
+\[
+\mathbf{CS}_i
+=
+(d_i+(m_i-1)b_{ii})\mathbf P_{1_{m_i}}
++
+(d_i-b_{ii})\mathbf Q_{1_{m_i}}.
+\]
+
+Thus, variables within the same block have a common variance and a common pairwise covariance, whereas the covariance between variables belonging to different blocks is constant within each pair of blocks.
+
+The structure admits a useful canonical representation. Define
+
+\[
+\mathbf P_m
+=
+\operatorname{diag}
+\left(
+\tfrac{1}{\sqrt{m_1}}\mathbf 1_{m_1},
+\ldots,
+\tfrac{1}{\sqrt{m_p}}\mathbf 1_{m_p}
+\right),
+\]
+
+and let \(\mathbf A\) be the \(p\times p\) matrix with entries
+
+\[
+a_{kk}=d_k+(m_k-1)b_{kk},
+\qquad
+a_{k\ell}=\sqrt{m_km_\ell}\,b_{k\ell},
+\quad k\ne\ell.
+\]
+
+Furthermore, put
+
+\[
+\lambda_k=d_k-b_{kk},
+\qquad k=1,\ldots,p.
+\]
+
+Then
+
+\[
+\boldsymbol{\Omega}_{UBS}
+=
+\mathbf P_m\mathbf A\mathbf P_m^\top
++
+\operatorname{diag}
+\left(
+\lambda_1\mathbf Q_{1_{m_1}},
+\ldots,
+\lambda_p\mathbf Q_{1_{m_p}}
+\right).
+\]
+
+This representation separates the covariance structure into two
+orthogonal components. The matrix \(\mathbf A\) describes the covariance structure in the \(p\)-dimensional subspace generated by the within-block mean directions, whereas the coefficients \(\lambda_1,\ldots,\lambda_p\) describe variation in the orthogonal within-block contrast subspaces.
+
+## Relation to commutative quadratic subspaces - UBS_CS structure
+
+In general, a uniform block structure belongs to a quadratic subspace, but it does not necessarily belong to a commutative quadratic subspace (CQS). The reason is that the matrix \(\mathbf A\) need not have a commutative quadratic-subspace structure.
+
+In general, the uniform block structure belongs to the class of
+commutative quadratic subspaces whenever the matrix \(\mathbf A\) in the
+canonical representation belongs to a CQS. In that case, the eigenspaces
+of \(\mathbf A\), together with the mutually orthogonal within-block
+contrast spaces, provide the eigenspaces of \(\boldsymbol{\Omega}_{UBS}\).
+
+In `TestCQS`, we consider the particular CQS case in which \(\mathbf A\)
+has a compound symmetry structure. This leads to the `UBS_CS` structure.
+In other words, the between-block component represented by \(\mathbf A\)
+has compound symmetry, while the within-block contrast components may
+have block-specific eigenvalues.
+
+The `UBS_CS` structure is therefore obtained by imposing a compound
+symmetry structure on the matrix \(\mathbf A\). Specifically, the
+diagonal elements of \(\mathbf A\) are equal and all its off-diagonal
+elements are equal, so that
+
+\[
+\mathbf A
+=
+(d-b)\mathbf I_p+b\mathbf J_p,
+\]
+
+for suitable parameters \(d\) and \(b\). Its two eigenspaces are the
+constant direction spanned by \(\mathbf 1_p\) and its orthogonal
+complement, with eigenvalues
+
+\[
+\lambda_{p+1}=d+(p-1)b,
+\qquad
+\lambda_{p+2}=d-b,
+\]
+
+of multiplicities \(1\) and \(p-1\), respectively.
+
+The resulting `UBS_CS` structure and its spectral representation are
+described in the following subsection.
+
+The resulting UBS_CS covariance matrix has the spectral representation
+
+\[
+\boldsymbol{\Omega}_{UBS\_CS}
+=
+\sum_{i=1}^p
+\lambda_i\boldsymbol{\Gamma}_i
++
+\lambda_{p+1}
+\mathbf P_m\mathbf P_{1_p}\mathbf P_m^\top
++
+\lambda_{p+2}
+\mathbf P_m\mathbf Q_{1_p}\mathbf P_m^\top,
+\]
+
+where
+
+\[
+\boldsymbol{\Gamma}_i
+=
+\operatorname{Bdiag}
+\left(
+\mathbf 0_{m_1},\ldots,
+\mathbf 0_{m_{i-1}},
+\mathbf Q_{1_{m_i}},
+\mathbf 0_{m_{i+1}},\ldots,
+\mathbf 0_{m_p}
+\right),
+\]
+
+and
+
+\[
+\lambda_i=d_i-b_{ii},
+\qquad i=1,\ldots,p,
+\]
+
+while
+
+\[
+\lambda_{p+1}=d+(p-1)b,
+\qquad
+\lambda_{p+2}=d-b.
+\]
+
+Thus, the UBS_CS structure can contain \(p+2\) distinct eigenspaces in this case: one contrast eigenspace for each block and two eigenspaces associated with the between-block compound symmetry structure.
+
+The canonical representation also gives a direct construction of the orthogonal basis matrix for a uniform block structure. The covariance matrix acts separately on the within-block contrast spaces and on the subspace generated by the blockwise mean directions.
+
+For each block \(i\), let \(\widetilde{\mathbf Q}_{m_i}\) 
+be an \(m_i\times(m_i-1)\) matrix whose columns form an orthonormal basis of the subspace orthogonal to \(\mathbf 1_{m_i}\). The corresponding within-block contrast space is therefore
+
+\[
+\mathcal C_i
+=
+\operatorname{span}(\widetilde{\mathbf Q}_{m_i}),
+\]
+
+and has dimension \(m_i-1\). Since the UBS covariance matrix acts on this space as multiplication by
+
+\[
+\lambda_i=d_i-b_{ii},
+\]
+
+each block contributes one eigenspace with multiplicity \(m_i-1\).
+
+The remaining \(p\)-dimensional subspace is spanned by the normalized blockwise mean directions,
+
+\[
+\mathbf P_m
+=
+\operatorname{diag}
+\left(
+\tfrac{1}{\sqrt{m_1}}\mathbf 1_{m_1},
+\ldots,
+\tfrac{1}{\sqrt{m_p}}\mathbf 1_{m_p}
+\right).
+\]
+
+If
+
+\[
+\mathbf A=\mathbf H_A
+\operatorname{diag}(\mu_1,\ldots,\mu_p)
+\mathbf H_A^\top
+\]
+
+is an orthogonal spectral decomposition of \(\mathbf A\), then the corresponding eigenvectors in the original \(m\)-dimensional space are given by
+
+\[
+\mathbf P_m\mathbf H_A.
+\]
+
+The package implements only the basis matrix for UBS_CS structure, that is, matrix \(\mathbf A\) having CS atructure.
+Consequently, an orthogonal basis matrix for the UBS_CS covariance matrix can be constructed as
+
+\[
+\mathbf H_{UBS\_CS}
+=
+\left(
+\widetilde{\mathbf Q}_{m_1}:
+\cdots:
+\widetilde{\mathbf Q}_{m_p}:
+\mathbf P_m\mathbf H_{CS,p}
+\right).
+\]
+
+The first \(p\) groups of columns correspond to the within-block contrast spaces, while the final \(p\) columns span the block-mean subspace. The eigenvalues associated with these two parts are, respectively,
+
+\[
+\lambda_1,\ldots,\lambda_p
+\]
+
+and
+
+\[
+\lambda_{p+1},\lambda_{p+2},
+\]
+
+which are the eigenvalues of \(\mathbf A\) with multiplicities 1 and \(p-1\), respectively.
+
+Accordingly, the eigenvalue multiplicity vector returned by the basis generator `basis_UBS_CS()` has the form
+
+\[
+\operatorname{qq}_{UBS\_CS}
+=
+\left(
+m_1-1,\ldots,m_p-1, 1, p-1 \right).
+\]
+
+Thus,
+
+\[
+\sum_{i=1}^p(m_i-1)+1+p-1
+=
+\sum_{i=1}^p m_i
+=
+m,
+\]
+
+as required.
+
+
+**Balanced special case**
+
+When all blocks have the same dimension, \(m_1=\cdots=m_p=m,\) 
+the matrix \(\mathbf P_m\) simplifies to
+
+\[
+\mathbf P_m
+=
+\mathbf I_p\otimes
+\tfrac{1}{\sqrt m}\mathbf 1_m.
+\]
+
+For the UBS_CS case described above, the covariance
+matrix can then be written as
+
+\[
+\boldsymbol{\Omega}_{UBS\_CS}
+=
+\sum_{i=1}^p
+\lambda_i
+\left(
+\mathbf E_{ii}\otimes\mathbf Q_{1_m}
+\right)
++
+\lambda_{p+1}
+\left(
+\mathbf P_{1_p}\otimes\mathbf P_{1_m}
+\right)
++
+\lambda_{p+2}
+\left(
+\mathbf Q_{1_p}\otimes\mathbf P_{1_m}
+\right).
+\]
+
+This representation makes the eigenspace structure particularly
+transparent: the first \(p\) components correspond to within-block contrasts, while the final two components correspond to the mean direction across blocks and its orthogonal complement.
+
+**Statistical interpretation:** The `UBS_CS` structure assumes that the
+blocks are organized symmetrically at the level of their mean directions,
+while allowing the variability in the within-block contrast directions to
+differ from block to block. More specifically, the covariance between
+different blocks is governed by a common compound symmetry structure in
+the subspace spanned by the blockwise mean directions. Within each block,
+the contrast subspace orthogonal to the blockwise mean direction has its
+own variance component.
+
+Thus, the model distinguishes between two types of variation:
+
+- variation in the common level or mean direction of the blocks, which
+  follows a compound symmetry structure across blocks;
+- within-block contrasts, whose variances may differ between blocks.
+
+This provides more flexibility than imposing a single covariance
+structure on all variables, while retaining a structured and
+spectrally tractable covariance model.
+
+> **Typical applications**
+>
+> - Multilevel or clustered data in which blocks represent groups or higher-level units and the overall level of each group exhibits exchangeable dependence across groups.
+> - Repeated measurements collected within heterogeneous groups, where the variability of within-group contrasts may differ between groups.
+> - Studies with several clusters of potentially different sizes, where the block-level effects are exchangeable but the within-cluster variability is allowed to be block-specific.
+> - Unbalanced longitudinal or multilevel designs in which the number of observations may differ across groups while a common exchangeable structure is imposed on the block-level components.
+
+
+# Double complete symmetry structure
+
+The double complete symmetry (`DCS`) structure is a special member of the
+block compound symmetry family. It is obtained when the covariance
+between different blocks is the same for every pair of variables, while
+the covariance structure within each block has compound symmetry.
+
+More precisely, the covariance matrix has the form
+
+\[
+\boldsymbol{\Omega}_{DCS}
+=
+\mathbf I_p\otimes
+\left[
+\alpha\mathbf I_m+
+\beta(\mathbf J_m-\mathbf I_m)
+\right]
++
+(\mathbf J_p-\mathbf I_p)\otimes
+\gamma\mathbf J_m,
+\]
+
+where \(\alpha\) is the common variance, \(\beta\) is the common
+covariance between distinct variables within the same block, and
+\(\gamma\) is the common covariance between variables belonging to
+different blocks.
+
+The defining feature of DCS is therefore that the covariance depends
+only on whether two variables belong to the same block and whether they
+represent the same variable within their respective blocks. In
+particular, all blocks are statistically identical and all variables
+within a block are exchangeable.
+
+From the spectral point of view, the DCS structure has only three
+eigenspaces. It can be written as
+
+\[
+\boldsymbol{\Omega}_{DCS}
+=
+\lambda_1
+\left(
+\mathbf P_{1_p}\otimes\mathbf P_{1_m}
+\right)
++
+\lambda_2
+\left(
+\mathbf I_p\otimes\mathbf Q_{1_m}
+\right)
++
+\lambda_3
+\left(
+\mathbf Q_{1_p}\otimes\mathbf P_{1_m}
+\right).
+\]
+
+The three eigenvalues are
+
+\[
+\lambda_1
+=
+\alpha+(m-1)\beta+m(p-1)\gamma, \qquad \lambda_2
+=
+\alpha-\beta, \qquad \lambda_3
+=
+\alpha+(m-1)\beta-m\gamma,
+\]
+
+with corresponding multiplicities
+
+\[
+1,\qquad p(m-1),\qquad p-1.
+\]
+
+Thus, the corresponding orthogonal basis matrix can be constructed as
+
+\[
+\mathbf H_{DCS}
+=
+\left(
+\mathbf H_{1}\;:\;\mathbf H_{2}\;:\;\mathbf H_{3}
+\right),
+\]
+
+where the three groups of columns span, respectively,
+
+\[
+\operatorname{span}(\mathbf 1_p)\otimes
+\operatorname{span}(\mathbf 1_m), \qquad 
+\mathbb R^p\otimes
+\operatorname{span}(\mathbf 1_m)^\perp, \quad \mbox{and} \quad
+\operatorname{span}(\mathbf 1_p)^\perp\otimes
+\operatorname{span}(\mathbf 1_m).
+\]
+
+Consequently, the eigenvalue multiplicity vector returned by
+`basis_DCS(p,m)` is
+
+```r
+basis_DCS(p = 3, m = 4)$qq
+```
+```r
+[1] 1 9 2
+```
+
+in this example.
+
+The DCS structure is also a special case of the balanced uniform block
+structure (UBS) introduced above. In the balanced case, when all
+blocks have the same dimension \(m\), DCS is obtained by imposing the
+same within-block contrast eigenvalue on all blocks. Thus, DCS can be
+viewed as a particularly parsimonious CQS model within the broader UBS
+class.
+
+**Statistical interpretation:** The DCS structure assumes complete
+exchangeability both within blocks and between blocks. All variables
+have the same variance, all distinct variables within the same block
+have the same covariance, and all variables belonging to different
+blocks have another common covariance.
+
+This produces a three-component decomposition of variability into:
+
+- the overall mean direction across all variables;
+- contrasts between variables within blocks;
+- contrasts between block means.
+
+> **Typical applications**
+>
+> - Balanced clustered or multilevel data with exchangeable dependence both within and between groups.
+> - Repeated-measures studies with several exchangeable groups or experimental units.
+> - Balanced hierarchical designs in which within-group and between-group correlations are each described by a single parameter.
+> - Situations where a highly parsimonious covariance model is desired while retaining separate within-block and between-block dependence.
+
+
+# User-defined covariance structures
+
+`TestCQS` also allows users to construct their own covariance structures by
+specifying the corresponding orthogonal basis matrices and the multiplicities
+of the associated eigenspaces. This provides a flexible way to work with
+commutative quadratic subspaces that are not among the built-in structures
+described above.
+
+A covariance structure is represented by a collection of mutually orthogonal
+projection matrices
+
+\[
+\mathbf V_1,\ldots,\mathbf V_k,
+\]
+
+satisfying
+
+\[
+\mathbf V_i^\top=\mathbf V_i,\qquad
+\mathbf V_i^2=\mathbf V_i,\qquad
+\mathbf V_i\mathbf V_j=\mathbf 0,\quad i\ne j,
+\qquad
+\sum_{i=1}^k\mathbf V_i=\mathbf I_q.
+\]
+
+The corresponding covariance matrices have the spectral representation
+
+\[
+\boldsymbol{\Omega}
+=
+\sum_{i=1}^k \lambda_i\mathbf V_i,
+\]
+
+where the eigenvalue multiplicities are given by
+
+\[
+q_i=\operatorname{rank}(\mathbf V_i),
+\qquad
+\sum_{i=1}^k q_i=q.
+\]
+
+Instead of specifying the projection matrices directly, `TestCQS` uses an
+orthogonal basis matrix
+
+\[
+\mathbf H=(\mathbf H_1:\cdots:\mathbf H_k),
+\]
+
+where the columns of each block \(\mathbf H_i\) form an orthonormal basis of
+the eigenspace associated with one distinct eigenvalue. The vector
+
+\[
+\mathbf{qq}=(q_1,\ldots,q_k)
+\]
+
+contains the corresponding dimensions of these eigenspaces.
+
+Thus, a user-defined structure is specified by
+
+1. an orthogonal basis matrix `H`, and
+2. the vector `qq` of eigenvalue multiplicities.
+
+The columns of `H` must be ordered so that the columns corresponding to each
+eigenspace occur consecutively, and the multiplicities in `qq` must agree with
+the corresponding column groups. In particular,
+
+```r
+ncol(H) == sum(qq)
+```
+
+must hold.
+
+### Example
+
+Suppose that a covariance matrix of dimension \(q = 6\) is required to have
+three distinct eigenvalues with multiplicities \(1\), \(2\), and \(3\). A
+user-defined orthogonal basis can be constructed, for example, as follows:
+
+```r
+H <- qr.Q(qr(matrix(rnorm(36), 6, 6)))
+
+qq <- c(1, 2, 3)
+```
+
+The matrix `H` is orthogonal, and its columns are divided into three
+eigenspaces according to the multiplicities specified in \(\oúeratorname{qq}\):
+
+```r
+H1 <- H[, 1, drop = FALSE]
+H2 <- H[, 2:3, drop = FALSE]
+H3 <- H[, 4:6, drop = FALSE]
+```
+
+The corresponding projection matrices are
+
+```r
+V1 <- H1 %*% t(H1)
+V2 <- H2 %*% t(H2)
+V3 <- H3 %*% t(H3)
+```
+
+and any covariance matrix in the resulting structure has the form
+
+\[
+\boldsymbol{\Omega} = \lambda_1\mathbf V_1 + \lambda_2\mathbf V_2 + \lambda_3\mathbf V_3.
+\]
+
+For positive eigenvalues \(\lambda_1\), \(\lambda_2\), \(\lambda_3\), this gives a
+positive-definite covariance matrix. If some eigenvalues are allowed to be
+zero, the resulting matrix is positive semidefinite.
+
+The same construction can be used with a basis motivated by a particular
+scientific or statistical problem. For example, the columns of `H` may be
+constructed from contrasts, Fourier-type vectors, polynomial contrasts, or
+other orthogonal subspaces that are relevant to the application.
+
+**Constructing a user-defined basis generator:** When the same structure is to be used repeatedly, it is convenient to wrap
+the construction in a function having the same basic output format as the
+built-in basis generators. For example,
+
+```r
+basis_custom <- function(q) {
+  H <- qr.Q(qr(matrix(rnorm(q^2), q, q)))
+  qq <- c(1, 2, q - 3)
+
+  list(
+    H = H,
+    qq = qq
+  )
+}
+```
+
+The resulting object follows the same representation used throughout
+`TestCQS`: matrix `H` contains the orthogonal eigenbasis and \(\operatorname{qq}\) contains the
+multiplicities of the corresponding eigenspaces.
+
+In practice, the basis should normally be constructed deterministically from
+the covariance structure rather than from random numbers, as in this
+illustrative example. This ensures that the same user-defined structure
+produces the same basis every time it is generated.
+
+The user-defined approach therefore extends the collection of built-in
+structures without requiring a separate implementation of the underlying
+statistical procedure. Once the appropriate orthogonal eigenspace
+decomposition has been specified, the resulting covariance structure can be
+handled using the same spectral framework as the built-in structures.
+
+
+# Choosing an appropriate basis generator
+
+The following table summarizes the implemented generators.
+
+|Model|Available generators|
+|:---------------------------------|:---------------------------------------------------------------|
+|Ordinary multivariate|`basis_S()`, `basis_D()`, `basis_CS()`, `basis_CT()`|
+|Block sphericity|`basis_BS_D()`, `basis_BS_CS()`, `basis_BS_CT()`|
+|Block diagonality|`basis_BD_S()`, `basis_BD_CS()`, `basis_BD_CT()`|
+|Block compound symmetry|`basis_BCS_S()`, `basis_BCS_D()`, `basis_BCS_CS()`, `basis_BCS_CT()`|
+|Block circular Toeplitz|`basis_BCT_S()`, `basis_BCT_D()`, `basis_BCT_CS()`, `basis_BCT_CT()`|
+|Uniform block structure|`basis_UBS_CS()`|
+|Double complete symmetry structure|`basis_DCS()`|
+
+These basis matrices can be used directly as input to `runTestCQS()`
+without any additional modifications.
+
+# Summary
+
+The `basis_*()` functions provide a convenient interface for generating
+orthogonal basis matrices for a broad range of covariance structures
+belonging to commutative quadratic subspaces. The package also allows
+advanced users to define their own structures by supplying an appropriate
+orthogonal basis matrix and the corresponding vector of eigenvalue
+multiplicities. This makes the testing procedures implemented in
+`TestCQS` applicable to user-defined commutative quadratic subspaces
+beyond the structures provided by the package.
+
+

@@ -1,0 +1,30 @@
+Package: TestCQS
+Title: Tools for testing commutative quadratic subspace covariance structures
+Version: 0.0.0.9000
+Authors@R: 
+  c(
+    person("Mateusz", "John", , "mateusz.john@put.poznan.pl", role = c("aut")),
+    person("Daniel", "Klein", , "daniel.klein@upjs.sk", role = c("aut", "cre"))
+  )
+Description: This package provides tools to test whether a scale/covariance matrix has a structure belonging
+	to the commutative quadratic subspace (CQS) under multivariate or, more generally, elliptically
+	contoured models. The main function, runTestCQS, performs likelihood ratio and Rao score tests of
+	the hypothesis that the scale/covariance matrix belongs to a specified CQS structure. Additional functions construct orthogonal basis matrices for
+    common CQS covariance structures.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+Imports: 
+    CharFunToolR,
+    graphics,
+    MASS,
+    stats,
+    Matrix,
+    utils
+Remotes:
+    gajdosandrej/CharFunToolR
+Suggests: 
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
+Config/roxygen2/version: 8.1.0
